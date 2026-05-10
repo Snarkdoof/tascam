@@ -1,0 +1,352 @@
+:root {
+    --bg-dark: #0f1115;
+    --bg-card: #161b22;
+    --bg-hover: #1f2633;
+    --accent: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --border: #2d3748;
+    --danger: #ef4444;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    height: 100vh; /* Fallback */
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+header {
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.logo span {
+    color: var(--accent);
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 20px;
+}
+
+.song-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 20px;
+}
+
+.song-list-container h2 {
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* Date Groups */
+.date-group {
+    margin-bottom: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    overflow: hidden;
+}
+
+.group-header {
+    padding: 12px 16px;
+    background: var(--bg-hover);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 500;
+    user-select: none;
+}
+
+.group-title {
+    color: var(--text-primary);
+}
+
+.group-count {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.group-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.group-content.hidden {
+    display: none;
+}
+
+/* Clip Row */
+.clip-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.clip-row:hover {
+    background: var(--bg-hover);
+}
+
+.clip-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.clip-play-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.8em;
+    padding-left: 2px;
+    /* Visual center adjustment */
+}
+
+.clip-play-btn:hover {
+    filter: brightness(1.1);
+}
+
+.clip-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.clip-title {
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.clip-title.editable:hover {
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(--text-secondary);
+}
+
+.clip-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.clip-meta span {
+    display: inline-block;
+}
+
+.duration {
+    font-family: monospace;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.timestamp {
+    font-family: monospace;
+    color: var(--accent);
+    padding: 1px 4px;
+    font-size: 0.9em;
+
+    font-size: 0.9em;
+}
+
+.tempo {
+    color: var(--accent);
+}
+
+.comment {
+    font-style: italic;
+    cursor: pointer;
+    color: #64748b;
+}
+
+.comment:hover {
+    color: var(--text-primary);
+}
+
+.edit-input {
+    background: #0f1115;
+    border: 1px solid var(--accent);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: inherit;
+    font-family: inherit;
+    width: 100%;
+}
+
+width: 100%;
+}
+
+.btn-download {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    transition: opacity 0.2s;
+    margin-right: 5px;
+}
+
+.btn-download:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-delete {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    transition: opacity 0.2s;
+}
+
+.btn-delete:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+
+/* Player */
+.player-container {
+    height: 100px;
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+    border-radius: 12px 12px 0 0;
+}
+
+.now-playing-info {
+    width: 200px;
+}
+
+.now-playing-info h3 {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.now-playing-info p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+#audio-player {
+    flex: 1;
+    height: 40px;
+}
+
+@media (max-width: 768px) {
+    .player-container {
+        flex-direction: column;
+        height: auto;
+        padding: 15px;
+        gap: 10px;
+    }
+    .now-playing-info {
+        width: 100%;
+        text-align: center;
+    }
+    #audio-player {
+        width: 100%;
+        flex: none;
+    }
+}
+
+/* Batch Actions */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.batch-actions.hidden {
+    display: none;
+}
+
+.btn-danger {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+}
+
+/* Clip Row Updates */
+.clip-checkbox {
+    margin-right: 12px;
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.clip-id {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #ed8936;
+    /* Nice orange */
+    margin-right: 10px;
+    min-width: 30px;
+}

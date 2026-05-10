@@ -1,0 +1,25 @@
+# Large media files and temporary data
+data/
+exports/
+mock_tascam/
+tmp/
+tmp2/
+tmp3/
+*.mp3
+*.wav
+
+# Databases
+*.db
+*.db.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.env
+
+# Logs and environment
+*.log
+.python-version
+uv.lock

@@ -1,0 +1,23 @@
+[project]
+name = "tascam-processor"
+version = "0.1.0"
+description = "Process and manage Tascam recordings"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlmodel",
+    "librosa",
+    "pydub",
+    "numpy",
+    "scipy",
+    "python-multipart",
+    "jinja2",
+    "google-genai",
+    "python-dotenv",
+    "argcomplete>=3.6.3",
+]
+
+[project.scripts]
+tascam-process = "process:main"

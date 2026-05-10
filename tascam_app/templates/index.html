@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tascam Player</title>
+    <link rel="stylesheet" href="/static/style.css?v=6">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">Tascam<span>Flow</span></div>
+        </header>
+
+        <main>
+            <div class="song-list-container">
+                <div class="header-row">
+                    <h2>Recordings</h2>
+                    <div id="batch-actions" class="batch-actions hidden">
+                        <button id="btn-batch-delete" class="btn-danger">Delete Selected (<span
+                                id="selected-count">0</span>)</button>
+                    </div>
+                </div>
+                <div id="song-list" class="song-list">
+                    <!-- Songs will be injected here -->
+                    <div class="loading">Loading library...</div>
+                </div>
+            </div>
+
+            <div class="player-container">
+                <div class="now-playing-info">
+                    <h3 id="np-title">Select a track</h3>
+                    <p id="np-artist">...</p>
+                </div>
+
+                <audio id="audio-player" controls preload="auto"></audio>
+
+                <div class="player-controls">
+                    <!-- Custom controls can go here if we hide default audio -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js?v=2"></script>
+</body>
+
+</html>
