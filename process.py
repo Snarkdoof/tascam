@@ -106,6 +106,7 @@ def ingest_files(file_paths: list[str], overwrite: bool = False, pre_roll: int =
             # Find closest metadata if preserve_metadata is True
             matched_title = "Processing..."
             matched_comment = None
+            is_named = False
             if old_data:
                 # Find closest by start_seconds
                 closest = min(old_data, key=lambda x: abs(x['start_seconds'] - start_sec))
@@ -113,11 +114,14 @@ def ingest_files(file_paths: list[str], overwrite: bool = False, pre_roll: int =
                 if abs(closest['start_seconds'] - start_sec) < 10.0:
                     matched_title = closest['title']
                     matched_comment = closest['comment']
+                    if matched_title and not matched_title.startswith("Song "):
+                        is_named = True
                     old_data.remove(closest) # Prevent applying to multiple clips
-            
+
             # Create a new Song for each clip initially (grouping later)
-            song = Song(title=matched_title, created_at=created_at)
+            song = Song(title=matched_title, created_at=created_at, is_named=is_named)
             session.add(song)
+
             session.commit()
             
             # Update title with real ID if it was just "Processing..."

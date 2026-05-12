@@ -9,26 +9,49 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script type="module">
+        import { MCorp, TIMINGSRC } from 'https://cdn.mcorp.no/mcorp.js';
+        window.MCorp = MCorp;
+        window.TIMINGSRC = TIMINGSRC;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@mcorp/mediasync/dist/basic-mediasync.min.js"></script>
 </head>
 
 <body>
     <div class="app-container">
         <header>
             <div class="logo">Tascam<span>Flow</span></div>
+            <nav class="main-nav">
+                <button id="nav-library" class="btn-nav active">Library</button>
+                <button id="nav-songs" class="btn-nav">Songs</button>
+            </nav>
         </header>
 
         <main>
-            <div class="song-list-container">
-                <div class="header-row">
-                    <h2>Recordings</h2>
-                    <div id="batch-actions" class="batch-actions hidden">
-                        <button id="btn-batch-delete" class="btn-danger">Delete Selected (<span
-                                id="selected-count">0</span>)</button>
+            <div id="library-view" class="view">
+                <div class="song-list-container">
+                    <div class="header-row">
+                        <h2>Recordings</h2>
+                        <div id="batch-actions" class="batch-actions hidden">
+                            <button id="btn-batch-delete" class="btn-danger">Delete Selected (<span
+                                    id="selected-count">0</span>)</button>
+                        </div>
+                    </div>
+                    <div id="song-list" class="song-list">
+                        <!-- Clips will be injected here -->
+                        <div class="loading">Loading library...</div>
                     </div>
                 </div>
-                <div id="song-list" class="song-list">
-                    <!-- Songs will be injected here -->
-                    <div class="loading">Loading library...</div>
+            </div>
+
+            <div id="songs-view" class="view hidden">
+                <div class="song-list-container">
+                    <div class="header-row">
+                        <h2>Named Songs</h2>
+                    </div>
+                    <div id="named-song-list" class="song-list">
+                        <!-- Named songs will be injected here -->
+                    </div>
                 </div>
             </div>
 
@@ -36,18 +59,54 @@
                 <div class="now-playing-info">
                     <h3 id="np-title">Select a track</h3>
                     <p id="np-artist">...</p>
+                    <div id="np-tags" class="tag-list"></div>
                 </div>
 
-                <audio id="audio-player" controls preload="auto"></audio>
+                <div class="player-visual">
+                    <audio id="audio-player" preload="auto"></audio>
+                    <div class="custom-progress">
+                        <div id="progress-bar" class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                            <div id="marker-track" class="marker-track"></div>
+                        </div>
+                    </div>
+                    <div class="time-display">
+                        <span id="current-time">00:00</span> / <span id="total-time">00:00</span>
+                    </div>
+                </div>
 
                 <div class="player-controls">
-                    <!-- Custom controls can go here if we hide default audio -->
+                    <div class="main-controls-row">
+                        <button id="btn-begin" title="Start from beginning">⏮</button>
+                        <button id="btn-skip-back" title="Skip back to start of segment">⏪</button>
+                        <button id="btn-rewind-3s" title="Back 3s">↺</button>
+                        <button id="btn-play-pause" class="btn-primary" title="Play / Pause">▶</button>
+                    </div>
+                    
+                    <div id="loop-controls" class="loop-controls">
+                        <!-- Loop options injected by JS -->
+                    </div>
+
+                    <div class="marker-btns">
+                        <input type="text" id="marker-val" placeholder="Label (e.g. A, Bar 16)">
+                        <button id="btn-add-marker" class="btn-secondary">Add Marker</button>
+                    </div>
+                </div>
+
+                <div class="marker-list-container">
+                    <div class="marker-header">
+                        <h4>Markers</h4>
+                        <button id="btn-toggle-markers" class="btn-icon">▼</button>
+                    </div>
+                    <div id="marker-list" class="marker-list">
+                        <!-- Markers will be injected here -->
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <script src="/static/app.js?v=2"></script>
+    <script type="module" src="/static/app.js?v=4"></script>
 </body>
 
 </html>

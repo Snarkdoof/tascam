@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlmodel import select, Session
-from typing import List
+from typing import List, Optional
 import os
 
 from tascam_app.database import get_session
@@ -25,12 +25,21 @@ def read_songs(session: Session = Depends(get_session)):
     songs = session.exec(select(Song).order_by(Song.created_at.desc())).all()
     return songs
 
+@app.get("/api/songs/named", response_model=List[Song])
+def read_named_songs(session: Session = Depends(get_session)):
+    songs = session.exec(
+        select(Song)
+        .where(Song.is_named == True)
+        .order_by(Song.created_at.desc())
+    ).all()
+    return songs
+
 @app.get("/api/clips", response_model=List[ClipRead])
 def read_all_clips(session: Session = Depends(get_session)):
     # SQLModel default response might miss relationships.
     # To fix this quickly without creating new models, we can rely on Pydantic's "from_attributes" (orm_mode)
     # but we need to fetch the data.
-    # Let's use a joining query for performance and ensure we return the data.
+    # Let' let's use a joining query for performance and ensure we return the data.
     from sqlalchemy.orm import selectinload
     clips = session.exec(
         select(Clip)
@@ -40,13 +49,65 @@ def read_all_clips(session: Session = Depends(get_session)):
     ).all()
     return clips
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field as PydanticField
+from typing import Dict, Any
+
+class Marker(BaseModel):
+    start: float
+    end: float
+    value: str
+
+class SongUpdate(BaseModel):
+    title: Optional[str] = None
+    is_named: Optional[bool] = None
+    tags: Optional[List[str]] = None
+    markers: Optional[List[Dict[str, Any]]] = None
+
 class ClipUpdate(BaseModel):
     title: str | None = None
     comment: str | None = None
 
 class BatchDeleteRequest(BaseModel):
     clip_ids: List[int]
+
+@app.patch("/api/songs/{song_id}")
+def update_song(song_id: int, song_update: SongUpdate, session: Session = Depends(get_session)):
+    song = session.get(Song, song_id)
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    if song_update.title is not None:
+        song.title = song_update.title
+        song.is_named = True # Assume if we set a title, it's named
+    
+    if song_update.is_named is not None:
+        song.is_named = song_update.is_named
+        
+    if song_update.tags is not None:
+        song.tags = song_update.tags
+        
+    if song_update.markers is not None:
+        song.markers = song_update.markers
+        
+    session.add(song)
+    session.commit()
+    session.refresh(song)
+    return song
+
+@app.post("/api/source_files/{source_file_id}/backup")
+def trigger_backup(source_file_id: int, session: Session = Depends(get_session)):
+    source_file = session.get(SourceFile, source_file_id)
+    if not source_file:
+        raise HTTPException(status_code=404, detail="Source file not found")
+    
+    # Stub for background upload task
+    source_file.backup_status = "pending"
+    session.add(source_file)
+    session.commit()
+    session.refresh(source_file)
+    
+    # In a real app, we would trigger an async task here
+    return {"ok": True, "status": source_file.backup_status}
 
 @app.patch("/api/clips/{clip_id}")
 def update_clip(clip_id: int, clip_update: ClipUpdate, session: Session = Depends(get_session)):
@@ -59,6 +120,7 @@ def update_clip(clip_id: int, clip_update: ClipUpdate, session: Session = Depend
     
     if clip_update.title is not None and clip.song:
         clip.song.title = clip_update.title
+        clip.song.is_named = True
         session.add(clip.song)
         
     session.add(clip)

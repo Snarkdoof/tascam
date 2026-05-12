@@ -350,3 +350,318 @@ width: 100%;
     margin-right: 10px;
     min-width: 30px;
 }
+
+/* Nav Styles */
+.main-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.btn-nav {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-nav:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+.btn-nav.active {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.view {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.view.hidden {
+    display: none;
+}
+
+/* Player Adjustments */
+.player-container {
+    height: auto;
+    flex-direction: column;
+    padding: 20px;
+    gap: 15px;
+}
+
+.now-playing-info {
+    width: 100%;
+    text-align: center;
+}
+
+.tag-list {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.tag {
+    background: var(--bg-hover);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    color: var(--accent);
+}
+
+/* Custom Progress */
+.player-visual {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.custom-progress {
+    width: 100%;
+    height: 24px;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    width: 0%;
+}
+
+.marker-track {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    width: 100%;
+    height: 26px;
+    pointer-events: none;
+}
+
+.marker-tick {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: #ed8936;
+    z-index: 2;
+}
+
+.marker-label-timeline {
+    position: absolute;
+    top: -8px;
+    font-size: 0.65rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    margin-left: 4px;
+    pointer-events: none;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 -1px 3px rgba(0,0,0,0.9);
+    z-index: 3;
+    font-weight: 500;
+}
+
+.time-display {
+    text-align: center;
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Player Controls */
+.player-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+    width: 100%;
+}
+
+.player-controls button {
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.player-controls button:hover {
+    background: var(--border);
+}
+
+.player-controls .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.main-controls-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.main-controls-row button {
+    font-size: 1.2rem;
+    padding: 10px 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loop-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+}
+
+.loop-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding-right: 5px;
+    user-select: none;
+}
+
+.btn-loop-segment {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px !important;
+}
+
+.btn-loop-segment:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.btn-loop-segment.active {
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    border-color: var(--accent);
+}
+
+.marker-btns {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.marker-btns input {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    color: white;
+    padding: 8px;
+    border-radius: 4px;
+    width: 150px;
+}
+
+/* Marker List */
+.marker-list-container {
+    width: 100%;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+}
+
+.marker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.marker-header h4 {
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 4px;
+    transition: transform 0.2s;
+    pointer-events: none;
+}
+
+.marker-list-container.collapsed .btn-icon {
+    transform: rotate(-90deg);
+}
+
+.marker-list-container.collapsed .marker-list {
+    display: none;
+}
+
+.marker-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.marker-item {
+    background: var(--bg-hover);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    cursor: pointer;
+}
+
+.marker-item:hover {
+    background: var(--border);
+}
+
+.marker-item .marker-label {
+    font-weight: 600;
+}
+
+.marker-item .marker-time {
+    color: var(--text-secondary);
+    font-family: monospace;
+}
+
+.marker-item .marker-delete {
+    color: var(--danger);
+    font-weight: bold;
+    margin-left: 5px;
+}
