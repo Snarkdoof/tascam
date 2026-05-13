@@ -10,6 +10,7 @@
 - Codebase research completed (FastAPI, SQLModel, SQLite).
 - **Track 01 & 02 Completed:** Database models updated and API endpoints implemented.
 - **Track 03 & 04 Completed:** Advanced Media Player with markers and navigation implemented; separate named songs view added.
+- **Added Tracks 06 & 07:** Infrastructure (Nginx, SSL, Firewall) and Authentication (Google Login, ACL).
 
 ## Active Tracks
 - `track-01-models`: Completed.
@@ -17,7 +18,10 @@
 - `track-03-player`: Completed.
 - `track-04-views`: Completed.
 - `track-05-backup`: Pending (Requires Google API credentials).
+- `track-06-infrastructure`: Planned.
+- `track-07-auth`: Planned.
 
 ## Blockers / Risks
 - Need to ensure the `mcorp-sync` skill is properly activated and utilized by the Frontend Specialist during `track-03-player`.
 - Cloud Backup requires Google API credentials and setup.
+- Google Login requires Google OAuth credentials.

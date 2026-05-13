@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tascam Player - Admin</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .admin-table th, .admin-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .admin-table th { color: var(--text-secondary); }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .badge-pending { background: #eab308; color: #fff; }
+        .badge-approved { background: #22c55e; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">Tascam<span>Admin</span></div>
+            <nav class="main-nav">
+                <a href="/" class="btn-nav">Back to Player</a>
+                <a href="/logout" class="btn-nav" style="color: var(--danger)">Logout</a>
+            </nav>
+        </header>
+
+        <main style="overflow-y: auto;">
+            <h2>User Management</h2>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.name }}</td>
+                        <td>{{ u.email }}</td>
+                        <td>
+                            {% if u.is_admin %}
+                            <span class="badge badge-approved">Admin</span>
+                            {% elif u.is_approved %}
+                            <span class="badge badge-approved">Approved</span>
+                            {% else %}
+                            <span class="badge badge-pending">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not u.is_admin %}
+                            <button class="btn-secondary toggle-btn" data-id="{{ u.id }}">
+                                {% if u.is_approved %}Revoke{% else %}Approve{% endif %}
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </main>
+    </div>
+
+    <script>
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                try {
+                    const res = await fetch(`/api/admin/users/${id}/approve`, { method: 'POST' });
+                    if (res.ok) window.location.reload();
+                } catch (err) { alert('Failed to update user'); }
+            });
+        });
+    </script>
+</body>
+</html>

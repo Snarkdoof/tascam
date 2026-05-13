@@ -24,6 +24,10 @@
             <nav class="main-nav">
                 <button id="nav-library" class="btn-nav active">Library</button>
                 <button id="nav-songs" class="btn-nav">Songs</button>
+                {% if user and user.is_admin %}
+                <a href="/admin" class="btn-nav" style="text-decoration: none; border-left: 1px solid var(--border); padding-left: 10px;">Admin</a>
+                {% endif %}
+                <a href="/logout" class="btn-nav" style="color: var(--danger); text-decoration: none;">Logout</a>
             </nav>
         </header>
 

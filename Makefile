@@ -49,6 +49,10 @@ remote-install:
 	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "bash $(REMOTE_PATH)/install-ubuntu.sh"
 	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && /home/$(SSH_USER)/.cargo/bin/uv sync"
 
+remote-infra:
+	@echo "--- Setting up Nginx, SSL, and Firewall on remote ---"
+	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "bash $(REMOTE_PATH)/setup-infra.sh"
+
 remote-run:
 	@echo "--- Starting app on remote ---"
 	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && nohup /home/$(SSH_USER)/.cargo/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &"

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tascam Player - Pending</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .user-info { margin: 20px 0; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">Tascam<span>Flow</span></div>
+        <div class="user-info">Logged in as {{ user.email }}</div>
+        <h2>Account Pending</h2>
+        <p style="margin-top: 10px; color: var(--text-secondary);">Your account is currently waiting for admin approval.</p>
+        <a href="/logout" style="color: var(--accent); margin-top: 20px;">Sign out</a>
+    </div>
+</body>
+</html>
