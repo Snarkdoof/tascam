@@ -174,19 +174,39 @@ def read_song_clips(song_id: int, session: Session = Depends(get_session)):
     clips = session.exec(select(Clip).where(Clip.song_id == song_id)).all()
     return clips
 
+def get_local_clip_path(file_path: str) -> str:
+    """Helper to ensure paths work regardless of the absolute path stored in the DB."""
+    if not file_path:
+        return ""
+    # Always check the local data/clips folder first
+    filename = os.path.basename(file_path)
+    local_path = os.path.join("data", "clips", filename)
+    if os.path.exists(local_path):
+        return local_path
+    # Fallback to the original path
+    return file_path
+
 @app.get("/api/clips/{clip_id}/stream")
 def stream_clip(clip_id: int, session: Session = Depends(get_session)):
     clip = session.get(Clip, clip_id)
-    if not clip or not os.path.exists(clip.file_path):
+    if not clip:
         raise HTTPException(status_code=404, detail="Clip not found")
+        
+    local_path = get_local_clip_path(clip.file_path)
+    if not os.path.exists(local_path):
+        raise HTTPException(status_code=404, detail="Clip file not found on disk")
     
-    return FileResponse(clip.file_path, media_type="audio/mpeg")
+    return FileResponse(local_path, media_type="audio/mpeg")
 
 @app.get("/api/clips/{clip_id}/download")
 def download_clip(clip_id: int, session: Session = Depends(get_session)):
     clip = session.get(Clip, clip_id)
-    if not clip or not os.path.exists(clip.file_path):
+    if not clip:
         raise HTTPException(status_code=404, detail="Clip not found")
+        
+    local_path = get_local_clip_path(clip.file_path)
+    if not os.path.exists(local_path):
+        raise HTTPException(status_code=404, detail="Clip file not found on disk")
     
     # Construct filename: YYYY-MM-DD_{id}.mp3 or YYYY-MM-DD_{id}_{song_name}.mp3
     date_str = clip.created_at.strftime("%Y-%m-%d")
@@ -201,7 +221,7 @@ def download_clip(clip_id: int, session: Session = Depends(get_session)):
     filename = f"{filename_base}.mp3"
     
     return FileResponse(
-        clip.file_path, 
+        local_path, 
         media_type="audio/mpeg", 
         filename=filename,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
