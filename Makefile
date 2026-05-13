@@ -47,7 +47,7 @@ deploy-data:
 remote-install:
 	@echo "--- Running installation script on remote ---"
 	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "bash $(REMOTE_PATH)/install-ubuntu.sh"
-	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && /home/$(SSH_USER)/.cargo/bin/uv sync"
+	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && /home/$(SSH_USER)/.local/bin/uv sync"
 
 remote-infra:
 	@echo "--- Setting up Nginx, SSL, and Firewall on remote ---"
@@ -55,5 +55,5 @@ remote-infra:
 
 remote-run:
 	@echo "--- Starting app on remote ---"
-	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && nohup /home/$(SSH_USER)/.cargo/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &"
+	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && nohup /home/$(SSH_USER)/.local/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &"
 	@echo "--- App started in background. Logs are in app.log ---"

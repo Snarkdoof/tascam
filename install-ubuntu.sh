@@ -11,7 +11,7 @@ sudo apt-get install -y ffmpeg python3-pip python3-venv curl iptables-persistent
 echo "--- Installing 'uv' ---"
 curl -LsSf https://astral.sh/uv/install.sh | sh
 # Ensure uv is in the path for the rest of this script
-export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 echo "--- Configuring Firewall (Ports 80, 443, 8000) ---"
 # Insert rules at the top of the INPUT chain to ensure they override defaults
