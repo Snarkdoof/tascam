@@ -10,14 +10,15 @@ run:
 	uv run uvicorn tascam_app.web:app --host 0.0.0.0 --reload
 
 import:
-ifdef DIR
-	uv run python process.py import-dir "$(DIR)" $(if $(OVERWRITE),--overwrite,)
-else
-	uv run python process.py import-dir $(if $(OVERWRITE),--overwrite,)
-endif
+	@echo "--- Opening SSH Tunnel to Postgres (Port 5432) ---"
+	ssh -f -N -L 5432:localhost:5432 -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP)
+	@echo "--- Tunnel Opened. Running Local Import against Remote DB ---"
+	DATABASE_URL="postgresql://tascam_user:tascam_secure_pass_123@localhost:5432/tascam_db" uv run python process.py import-dir $(if $(DIR),"$(DIR)",) $(if $(OVERWRITE),--overwrite,) || true
+	@echo "--- Closing SSH Tunnel ---"
+	pkill -f "ssh -f -N -L 5432:localhost:5432" || true
 
 export:
-	uv run python process.py export
+	DATABASE_URL="postgresql://tascam_user:tascam_secure_pass_123@localhost:5432/tascam_db" uv run python process.py export
 
 deploy:
 	@echo "--- Deploying Code to $(SERVER_IP) ---"
@@ -33,6 +34,12 @@ deploy:
 		-e "ssh -i $(SSH_KEY)" \
 		./ $(SSH_USER)@$(SERVER_IP):$(REMOTE_PATH)
 	@echo "--- Code Deployment Complete ---"
+
+remote-db-setup: deploy
+	@echo "--- Setting up PostgreSQL and Migrating Data on Remote ---"
+	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "bash $(REMOTE_PATH)/setup-pg.sh"
+	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && /home/$(SSH_USER)/.local/bin/uv run python migrate_db.py"
+	@echo "--- Database Migration Complete! ---"
 
 deploy-data:
 	@echo "--- Syncing Database and Clips to $(SERVER_IP) ---"
