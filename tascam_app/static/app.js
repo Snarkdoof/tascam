@@ -817,5 +817,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initial load
-    fetchClips();
+    fetchNamedSongs();
+    fetchClips(); // Still fetch clips in background so the library is ready when toggled
 });
