@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const markerList = document.getElementById('marker-list');
     const btnToggleMarkers = document.getElementById('btn-toggle-markers');
     const markerListContainer = document.querySelector('.marker-list-container');
+    const btnInstall = document.getElementById('btn-install');
 
     // State
     let clips = [];
@@ -53,6 +54,36 @@ document.addEventListener('DOMContentLoaded', () => {
             markerListContainer.classList.toggle('collapsed');
         });
     }
+
+    // PWA Install Logic
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later.
+        deferredPrompt = e;
+        // Update UI notify the user they can install the PWA
+        if (btnInstall) {
+            btnInstall.classList.remove('hidden');
+        }
+    });
+
+    if (btnInstall) {
+        btnInstall.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                deferredPrompt = null;
+                btnInstall.classList.add('hidden');
+            }
+        });
+    }
+
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        if (btnInstall) btnInstall.classList.add('hidden');
+    });
 
     // Timing Setup
     const to = new TIMINGSRC.TimingObject();
@@ -684,10 +715,73 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="marker-time">${formatDuration(m.start)}</span>
                 <span class="marker-delete" data-idx="${idx}">×</span>
             `;
-            div.addEventListener('click', (e) => {
+
+            // Drag-to-Nudge Logic
+            let startX = 0;
+            let startT = m.start;
+            let currentT = m.start;
+            let isDragging = false;
+            const threshold = 5; // pixels before we consider it a drag
+            const sensitivity = 0.01; // seconds per pixel
+
+            div.addEventListener('pointerdown', (e) => {
                 if (e.target.className === 'marker-delete') return;
-                to.update({ position: m.start, velocity: 1 });
+                div.setPointerCapture(e.pointerId);
+                startX = e.clientX;
+                startT = m.start;
+                isDragging = false;
             });
+
+            div.addEventListener('pointermove', (e) => {
+                if (!div.hasPointerCapture(e.pointerId)) return;
+                
+                const deltaX = e.clientX - startX;
+                
+                if (!isDragging && Math.abs(deltaX) > threshold) {
+                    isDragging = true;
+                    div.classList.add('is-nudging');
+                }
+
+                if (isDragging) {
+                    // Update current time locally
+                    currentT = Math.max(0, Math.min(player.duration || 9999, startT + (deltaX * sensitivity)));
+                    div.querySelector('.marker-time').textContent = formatDuration(currentT);
+                }
+            });
+
+            div.addEventListener('pointerup', async (e) => {
+                if (!div.hasPointerCapture(e.pointerId)) return;
+                div.releasePointerCapture(e.pointerId);
+                
+                if (!isDragging) {
+                    // It was a tap, just jump and play
+                    to.update({ position: m.start, velocity: 1 });
+                } else {
+                    // It was a drag, save the new time
+                    div.classList.remove('is-nudging');
+                    
+                    const updatedMarkers = [...currentClip.song.markers];
+                    updatedMarkers[idx] = { ...updatedMarkers[idx], start: currentT };
+                    
+                    try {
+                        const res = await fetch(`/api/songs/${currentClip.song.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ markers: updatedMarkers })
+                        });
+                        currentClip.song = await res.json();
+                        renderMarkers();
+                        
+                        // Auto-play from the new spot as requested
+                        to.update({ position: currentT, velocity: 1 });
+                    } catch (err) {
+                        console.error(err);
+                        renderMarkers(); // Revert UI
+                    }
+                }
+                isDragging = false;
+            });
+
             div.querySelector('.marker-delete').addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const newMarkers = markers.filter((_, i) => i !== idx);

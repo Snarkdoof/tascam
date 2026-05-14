@@ -15,6 +15,10 @@
     padding: 0;
 }
 
+.hidden {
+    display: none !important;
+}
+
 body {
     font-family: 'Inter', sans-serif;
     background-color: var(--bg-dark);
@@ -34,22 +38,44 @@ body {
 }
 
 header {
-    height: 70px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 12px;
+    padding: 15px 0;
     border-bottom: 1px solid var(--border);
     margin-bottom: 20px;
 }
 
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
 .logo {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .logo span {
     color: var(--accent);
+}
+
+.btn-install {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-install:hover {
+    background: rgba(59, 130, 246, 0.1);
 }
 
 main {
@@ -408,6 +434,8 @@ input:checked + .slider:before {
     padding: 4px;
     border-radius: 8px;
     border: 1px solid var(--border);
+    flex-wrap: wrap;
+    justify-content: flex-start;
 }
 
 .btn-nav {
@@ -439,7 +467,7 @@ input:checked + .slider:before {
 }
 
 .view.hidden {
-    display: none;
+    display: none !important;
 }
 
 /* Player Adjustments */
@@ -694,10 +722,25 @@ input:checked + .slider:before {
     gap: 8px;
     align-items: center;
     cursor: pointer;
+    touch-action: none;
+    user-select: none;
 }
 
 .marker-item:hover {
     background: var(--border);
+}
+
+.marker-item.is-nudging {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.05);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.marker-item.is-nudging .marker-time {
+    color: white;
+    font-weight: bold;
 }
 
 .marker-item .marker-label {

@@ -51,6 +51,14 @@ def get_admin_user(user: User = Depends(get_current_user)) -> User:
         raise HTTPException(status_code=403, detail="Admin privileges required")
     return user
 
+@app.get("/manifest.json")
+def get_manifest():
+    return FileResponse("tascam_app/static/manifest.json", media_type="application/manifest+json")
+
+@app.get("/sw.js")
+def get_sw():
+    return FileResponse("tascam_app/static/sw.js", media_type="application/javascript")
+
 @app.get("/login")
 async def login(request: Request):
     redirect_uri = request.url_for('auth')

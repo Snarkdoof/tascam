@@ -5,7 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tascam Player</title>
-    <link rel="stylesheet" href="/static/style.css?v=6">
+    <link rel="stylesheet" href="/static/style.css?v=8">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f1115">
+    <link rel="apple-touch-icon" href="/static/icons/icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -23,7 +26,10 @@
 <body>
     <div class="app-container">
         <header>
-            <div class="logo">Tascam<span>Flow</span></div>
+            <div class="header-top">
+                <div class="logo">Tascam<span>Flow</span></div>
+                <button id="btn-install" class="btn-install hidden">Install App</button>
+            </div>
             <nav class="main-nav">
                 <button id="nav-library" class="btn-nav active">Library</button>
                 <button id="nav-songs" class="btn-nav">Songs</button>
@@ -113,7 +119,16 @@
         </main>
     </div>
 
-    <script type="module" src="/static/app.js?v=4"></script>
+    <script type="module" src="/static/app.js?v=5"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered with scope:', registration.scope))
+                    .catch(err => console.error('SW registration failed:', err));
+            });
+        }
+    </script>
 </body>
 
 </html>
