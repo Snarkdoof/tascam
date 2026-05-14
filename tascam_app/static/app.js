@@ -388,6 +388,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const durationStr = formatDuration(clip.duration_seconds);
         const startStr = formatTimestamp(clip.start_seconds);
 
+        let privateToggleHTML = '';
+        if (window.IS_ADMIN) {
+            privateToggleHTML = `
+                <div class="private-toggle-container" title="Private (Admin only)">
+                    <span>🔒</span>
+                    <label class="switch">
+                        <input type="checkbox" class="clip-private-toggle" ${clip.is_private ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            `;
+        }
+
         div.innerHTML = `
             <div class="clip-main">
                 <input type="checkbox" class="clip-checkbox" value="${clip.id}">
@@ -404,6 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             <div class="clip-actions">
+                ${privateToggleHTML}
                 <button class="btn-download" title="Download">⬇️</button>
                 <button class="btn-delete" title="Delete">🗑</button>
             </div>
@@ -415,6 +429,28 @@ document.addEventListener('DOMContentLoaded', () => {
             else selectedClipIds.delete(clip.id);
             updateBatchActions();
         });
+
+        if (window.IS_ADMIN) {
+            const privateToggle = div.querySelector('.clip-private-toggle');
+            if (privateToggle) {
+                privateToggle.addEventListener('change', async (e) => {
+                    const isPrivate = e.target.checked;
+                    try {
+                        const res = await fetch(`/api/clips/${clip.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ is_private: isPrivate })
+                        });
+                        if (!res.ok) throw new Error("Failed to update");
+                        clip.is_private = isPrivate;
+                    } catch (err) {
+                        console.error(err);
+                        e.target.checked = !isPrivate;
+                        alert("Failed to update privacy");
+                    }
+                });
+            }
+        }
 
         div.querySelector('.clip-play-btn').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -463,6 +499,19 @@ document.addEventListener('DOMContentLoaded', () => {
             content.className = 'group-content';
             
             groupSongs.forEach(song => {
+                let privateToggleHTML = '';
+                if (window.IS_ADMIN) {
+                    privateToggleHTML = `
+                        <div class="private-toggle-container" title="Private (Admin only)">
+                            <span>🔒</span>
+                            <label class="switch">
+                                <input type="checkbox" class="song-private-toggle" ${song.is_private ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    `;
+                }
+
                 const div = document.createElement('div');
                 div.className = 'clip-row';
                 div.innerHTML = `
@@ -476,7 +525,33 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                     </div>
+                    <div class="clip-actions">
+                        ${privateToggleHTML}
+                    </div>
                 `;
+
+                if (window.IS_ADMIN) {
+                    const privateToggle = div.querySelector('.song-private-toggle');
+                    if (privateToggle) {
+                        privateToggle.addEventListener('change', async (e) => {
+                            const isPrivate = e.target.checked;
+                            try {
+                                const res = await fetch(`/api/songs/${song.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ is_private: isPrivate })
+                                });
+                                if (!res.ok) throw new Error("Failed to update");
+                                song.is_private = isPrivate;
+                            } catch (err) {
+                                console.error(err);
+                                e.target.checked = !isPrivate;
+                                alert("Failed to update privacy");
+                            }
+                        });
+                    }
+                }
+
                 div.querySelector('.clip-play-btn').addEventListener('click', () => {
                     // Find a clip for this song to play
                     fetch(`/api/songs/${song.id}/clips`)

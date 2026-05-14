@@ -125,31 +125,34 @@ def approve_user(user_id: int, user: User = Depends(get_admin_user), session: Se
 
 @app.get("/api/songs", response_model=List[Song])
 def read_songs(session: Session = Depends(get_session), user: User = Depends(get_current_user)):
-    songs = session.exec(select(Song).order_by(Song.created_at.desc())).all()
-    return songs
+    query = select(Song).order_by(Song.created_at.desc())
+    if not user.is_admin:
+        query = query.where(Song.is_private == False)
+    return session.exec(query).all()
 
 @app.get("/api/songs/named", response_model=List[Song])
 def read_named_songs(session: Session = Depends(get_session), user: User = Depends(get_current_user)):
-    songs = session.exec(
-        select(Song)
-        .where(Song.is_named == True)
-        .order_by(Song.created_at.desc())
-    ).all()
-    return songs
+    query = select(Song).where(Song.is_named == True).order_by(Song.created_at.desc())
+    if not user.is_admin:
+        query = query.where(Song.is_private == False)
+    return session.exec(query).all()
 
 @app.get("/api/clips", response_model=List[ClipRead])
 def read_all_clips(session: Session = Depends(get_session), user: User = Depends(get_current_user)):
-    # SQLModel default response might miss relationships.
-    # To fix this quickly without creating new models, we can rely on Pydantic's "from_attributes" (orm_mode)
-    # but we need to fetch the data.
-    # Let' let's use a joining query for performance and ensure we return the data.
     from sqlalchemy.orm import selectinload
-    clips = session.exec(
-        select(Clip)
-        .options(selectinload(Clip.source_file), selectinload(Clip.song))
-        .join(SourceFile)
-        .order_by(SourceFile.filename.asc(), Clip.start_seconds.asc())
-    ).all()
+    query = select(Clip).options(selectinload(Clip.source_file), selectinload(Clip.song)).join(SourceFile)
+    
+    if not user.is_admin:
+        query = query.where(Clip.is_private == False)
+        
+    query = query.order_by(SourceFile.filename.asc(), Clip.start_seconds.asc())
+    
+    clips = session.exec(query).all()
+    
+    # Filter out clips where the associated song is private
+    if not user.is_admin:
+        clips = [c for c in clips if not (c.song and c.song.is_private)]
+        
     return clips
 
 from pydantic import BaseModel, Field as PydanticField
@@ -163,12 +166,14 @@ class Marker(BaseModel):
 class SongUpdate(BaseModel):
     title: Optional[str] = None
     is_named: Optional[bool] = None
+    is_private: Optional[bool] = None
     tags: Optional[List[str]] = None
     markers: Optional[List[Dict[str, Any]]] = None
 
 class ClipUpdate(BaseModel):
     title: str | None = None
     comment: str | None = None
+    is_private: Optional[bool] = None
 
 class BatchDeleteRequest(BaseModel):
     clip_ids: List[int]
@@ -178,6 +183,10 @@ def update_song(song_id: int, song_update: SongUpdate, session: Session = Depend
     song = session.get(Song, song_id)
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
+        
+    # Only admins can change privacy
+    if song_update.is_private is not None and user.is_admin:
+        song.is_private = song_update.is_private
     
     if song_update.title is not None:
         song.title = song_update.title
@@ -217,6 +226,10 @@ def update_clip(clip_id: int, clip_update: ClipUpdate, session: Session = Depend
     clip = session.get(Clip, clip_id)
     if not clip:
         raise HTTPException(status_code=404, detail="Clip not found")
+        
+    # Only admins can change privacy
+    if clip_update.is_private is not None and user.is_admin:
+        clip.is_private = clip_update.is_private
     
     if clip_update.comment is not None:
         clip.comment = clip_update.comment

@@ -22,6 +22,7 @@ class Song(SQLModel, table=True):
     
     # New fields for Song Identification, Tags, and Markers
     is_named: bool = Field(default=False)
+    is_private: bool = Field(default=False)
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     markers: List[Dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
     
@@ -47,6 +48,7 @@ class Clip(SQLModel, table=True):
     
     comment: Optional[str] = Field(default=None)
     tempo: Optional[float] = Field(default=None)
+    is_private: bool = Field(default=False)
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
@@ -59,6 +61,7 @@ class SongRead(SQLModel):
     title: Optional[str] = None
     artist: Optional[str] = None
     is_named: bool = False
+    is_private: bool = False
     tags: List[str] = []
     markers: List[Dict[str, Any]] = []
     created_at: datetime
@@ -72,6 +75,7 @@ class ClipRead(SQLModel):
     duration_seconds: float
     comment: Optional[str] = None
     tempo: Optional[float] = None
+    is_private: bool = False
     created_at: datetime
     
     # Include Relationships
