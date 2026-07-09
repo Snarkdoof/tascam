@@ -286,6 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ markers: updatedMarkers })
             });
+            if (res.status === 401) {
+                window.location.href = '/';
+                return;
+            }
             const updatedSong = await res.json();
             currentClip.song = updatedSong;
             markerValInput.value = '';
@@ -301,27 +305,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch Initial Data
     function fetchClips() {
         fetch('/api/clips')
-            .then(res => res.json())
+            .then(res => {
+                if (res.status === 401) {
+                    window.location.href = '/';
+                    throw new Error('Unauthorized');
+                }
+                return res.json();
+            })
             .then(data => {
                 clips = data;
                 renderGroups(songList, clips);
             })
             .catch(err => {
-                songList.innerHTML = '<div class="error">Failed to load library</div>';
-                console.error(err);
+                if (err.message !== 'Unauthorized') {
+                    songList.innerHTML = '<div class="error">Failed to load library</div>';
+                    console.error(err);
+                }
             });
     }
 
     function fetchNamedSongs() {
         fetch('/api/songs/named')
-            .then(res => res.json())
+            .then(res => {
+                if (res.status === 401) {
+                    window.location.href = '/';
+                    throw new Error('Unauthorized');
+                }
+                return res.json();
+            })
             .then(data => {
                 namedSongs = data;
                 renderNamedSongs();
             })
             .catch(err => {
-                namedSongList.innerHTML = '<div class="error">Failed to load songs</div>';
-                console.error(err);
+                if (err.message !== 'Unauthorized') {
+                    namedSongList.innerHTML = '<div class="error">Failed to load songs</div>';
+                    console.error(err);
+                }
             });
     }
 
@@ -472,6 +492,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ is_private: isPrivate })
                         });
+                        if (res.status === 401) {
+                            window.location.href = '/';
+                            return;
+                        }
                         if (!res.ok) throw new Error("Failed to update");
                         clip.is_private = isPrivate;
                     } catch (err) {
@@ -572,6 +596,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ is_private: isPrivate })
                                 });
+                                if (res.status === 401) {
+                                    window.location.href = '/';
+                                    return;
+                                }
                                 if (!res.ok) throw new Error("Failed to update");
                                 song.is_private = isPrivate;
                             } catch (err) {
@@ -586,12 +614,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 div.querySelector('.clip-play-btn').addEventListener('click', () => {
                     // Find a clip for this song to play
                     fetch(`/api/songs/${song.id}/clips`)
-                        .then(res => res.json())
+                        .then(res => {
+                            if (res.status === 401) {
+                                window.location.href = '/';
+                                throw new Error('Unauthorized');
+                            }
+                            return res.json();
+                        })
                         .then(clips => {
                             if (clips.length > 0) {
                                 // We need to attach the song object to the clip for the player
                                 clips[0].song = song;
                                 playClip(clips[0]);
+                            }
+                        })
+                        .catch(err => {
+                            if (err.message !== 'Unauthorized') {
+                                console.error(err);
                             }
                         });
                 });
@@ -631,11 +670,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const endpoint = field === 'title' ? `/api/songs/${clip.song?.id}` : `/api/clips/${id}`;
                 if (field === 'title' && !clip.song) return;
 
-                await fetch(endpoint, {
+                const res = await fetch(endpoint, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
+                if (res.status === 401) {
+                    window.location.href = '/';
+                    return;
+                }
                 
                 if (field === 'title' && clip.song) {
                     clip.song.title = newVal;
@@ -656,7 +699,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function deleteClip(id, el) {
         try {
-            await fetch(`/api/clips/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/clips/${id}`, { method: 'DELETE' });
+            if (res.status === 401) {
+                window.location.href = '/';
+                return;
+            }
             el.remove();
         } catch (err) {
             console.error(err);
@@ -769,6 +816,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ markers: updatedMarkers })
                         });
+                        if (res.status === 401) {
+                            window.location.href = '/';
+                            return;
+                        }
                         currentClip.song = await res.json();
                         renderMarkers();
                         
@@ -791,6 +842,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ markers: newMarkers })
                     });
+                    if (res.status === 401) {
+                        window.location.href = '/';
+                        return;
+                    }
                     currentClip.song = await res.json();
                     renderMarkers();
                 } catch (err) { console.error(err); }

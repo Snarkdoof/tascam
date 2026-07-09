@@ -1,0 +1,17 @@
+{
+  "name": "Tascam Flow",
+  "short_name": "Tascam",
+  "description": "Audio player and marker tool for Tascam recordings.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

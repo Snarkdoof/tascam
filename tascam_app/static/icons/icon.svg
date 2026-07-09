@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+    <!-- Dark Background -->
+    <rect width="512" height="512" fill="#0f1115"/>
+    
+    <!-- Stylized Tascam / Play Ring -->
+    <circle cx="256" cy="256" r="200" fill="none" stroke="#ed8936" stroke-width="24"/>
+    
+    <!-- Play Triangle -->
+    <path d="M200 160 L360 256 L200 352 Z" fill="#3b82f6"/>
+</svg>

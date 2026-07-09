@@ -34,7 +34,7 @@ def normalize_wav(file_path: str):
         logger.error(f"Failed to normalize {file_path}: {e}")
 
 class AudioProcessor:
-    def __init__(self, silence_thresh=-35, min_silence_len=5000, keep_silence=500):
+    def __init__(self, silence_thresh=-40, min_silence_len=10000, keep_silence=500):
         """
         :param silence_thresh: dBFS threshold for silence (default -40)
         :param min_silence_len: minimum length of silence to be considered a split (ms)
