@@ -45,7 +45,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedClipIds = new Set();
     let loopMode = 'off';
     let loopSection = null;
-    let activeLoopSegments = new Set();
+    // Handle unauthorized calls by clearing all caches and redirecting to root
+    async function handleUnauthorized() {
+        if ('caches' in window) {
+            try {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+            } catch (err) {
+                console.error('Failed to clear cache on 401:', err);
+            }
+        }
+        window.location.href = '/';
+    }
 
     // Toggle Markers
     const markerHeader = document.querySelector('.marker-header');
@@ -287,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ markers: updatedMarkers })
             });
             if (res.status === 401) {
-                window.location.href = '/';
+                handleUnauthorized();
                 return;
             }
             const updatedSong = await res.json();
@@ -307,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/clips')
             .then(res => {
                 if (res.status === 401) {
-                    window.location.href = '/';
+                    handleUnauthorized();
                     throw new Error('Unauthorized');
                 }
                 return res.json();
@@ -328,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/songs/named')
             .then(res => {
                 if (res.status === 401) {
-                    window.location.href = '/';
+                    handleUnauthorized();
                     throw new Error('Unauthorized');
                 }
                 return res.json();
@@ -493,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             body: JSON.stringify({ is_private: isPrivate })
                         });
                         if (res.status === 401) {
-                            window.location.href = '/';
+                            handleUnauthorized();
                             return;
                         }
                         if (!res.ok) throw new Error("Failed to update");
@@ -597,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     body: JSON.stringify({ is_private: isPrivate })
                                 });
                                 if (res.status === 401) {
-                                    window.location.href = '/';
+                                    handleUnauthorized();
                                     return;
                                 }
                                 if (!res.ok) throw new Error("Failed to update");
@@ -616,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fetch(`/api/songs/${song.id}/clips`)
                         .then(res => {
                             if (res.status === 401) {
-                                window.location.href = '/';
+                                handleUnauthorized();
                                 throw new Error('Unauthorized');
                             }
                             return res.json();
@@ -676,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(body)
                 });
                 if (res.status === 401) {
-                    window.location.href = '/';
+                    handleUnauthorized();
                     return;
                 }
                 
@@ -701,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch(`/api/clips/${id}`, { method: 'DELETE' });
             if (res.status === 401) {
-                window.location.href = '/';
+                handleUnauthorized();
                 return;
             }
             el.remove();
@@ -817,7 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             body: JSON.stringify({ markers: updatedMarkers })
                         });
                         if (res.status === 401) {
-                            window.location.href = '/';
+                            handleUnauthorized();
                             return;
                         }
                         currentClip.song = await res.json();
@@ -843,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ markers: newMarkers })
                     });
                     if (res.status === 401) {
-                        window.location.href = '/';
+                        handleUnauthorized();
                         return;
                     }
                     currentClip.song = await res.json();

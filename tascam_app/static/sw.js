@@ -32,10 +32,21 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
+    // Clear all caches on logout to prevent serving stale cached / page
+    if (url.pathname.startsWith('/logout')) {
+        event.waitUntil(
+            caches.keys().then((cacheNames) => {
+                return Promise.all(
+                    cacheNames.map((name) => caches.delete(name))
+                );
+            })
+        );
+        return; 
+    }
+
     // Bypass cache for API, Auth, Admin, and Audio Streams (Network Only)
     if (url.pathname.startsWith('/api/') || 
         url.pathname.startsWith('/login') || 
-        url.pathname.startsWith('/logout') ||
         url.pathname.startsWith('/auth') ||
         url.pathname.startsWith('/admin')) {
         return; 
