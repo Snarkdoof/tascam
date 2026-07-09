@@ -15,7 +15,8 @@ import:
 	@echo "--- Tunnel Opened. Running Local Import against Remote DB ---"
 	DATABASE_URL="postgresql://tascam_user:tascam_secure_pass_123@localhost:5432/tascam_db" uv run python process.py import-dir $(if $(DIR),"$(DIR)",) $(if $(OVERWRITE),--overwrite,) || true
 	@echo "--- Closing SSH Tunnel ---"
-	pkill -f "ssh -f -N -L 5432:localhost:5432" || true
+	pkill -f "[s]sh -f -N -L 5432:localhost:5432" || true
+	@$(MAKE) deploy-data
 
 export:
 	DATABASE_URL="postgresql://tascam_user:tascam_secure_pass_123@localhost:5432/tascam_db" uv run python process.py export
@@ -36,16 +37,14 @@ deploy:
 	@echo "--- Code Deployment Complete ---"
 
 remote-db-setup: deploy
-	@echo "--- Setting up PostgreSQL and Migrating Data on Remote ---"
+	@echo "--- 🚨 WARNING: THIS WILL DESTROY ALL DATA IN THE REMOTE POSTGRES DB 🚨 ---"
+	@echo "--- It will recreate the schema and import data from the local SQLite file ---"
 	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "bash $(REMOTE_PATH)/setup-pg.sh"
 	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && /home/$(SSH_USER)/.local/bin/uv run python migrate_db.py"
 	@echo "--- Database Migration Complete! ---"
 
 deploy-data:
-	@echo "--- Syncing Database and Clips to $(SERVER_IP) ---"
-	rsync -avz --progress \
-		-e "ssh -i $(SSH_KEY)" \
-		tascam.db $(SSH_USER)@$(SERVER_IP):$(REMOTE_PATH)/
+	@echo "--- Syncing Clips to $(SERVER_IP) ---"
 	rsync -avz --progress \
 		-e "ssh -i $(SSH_KEY)" \
 		data/clips/ $(SSH_USER)@$(SERVER_IP):$(REMOTE_PATH)/data/clips/
