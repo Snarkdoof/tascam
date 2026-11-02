@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
+from datetime import datetime
 from sqlmodel import select, Session
 from typing import List, Optional
 from dotenv import load_dotenv
@@ -12,7 +13,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from tascam_app.database import get_session
-from tascam_app.models import Song, Clip, SourceFile, ClipRead, SongRead, User
+from tascam_app.models import (
+    Song, Clip, SourceFile, ClipRead, SongRead, User,
+    Repertoire, RepertoireItem, RepertoireRead, RepertoireDetailRead,
+    RepertoireItemRead, RepertoireCreate, RepertoireUpdate,
+    RepertoireItemCreate, RepertoireItemUpdate, RepertoireBatchAddRequest,
+    RepertoireReorderRequest
+)
 
 app = FastAPI(title="Tascam Player")
 
@@ -297,6 +304,324 @@ def batch_delete_clips(request: BatchDeleteRequest, session: Session = Depends(g
 def read_song_clips(song_id: int, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
     clips = session.exec(select(Clip).where(Clip.song_id == song_id)).all()
     return clips
+
+# ==========================================
+# Repertoire Endpoints
+# ==========================================
+
+@app.get("/api/repertoires", response_model=List[RepertoireRead])
+def read_repertoires(session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    from sqlalchemy.orm import selectinload
+    query = select(Repertoire).options(selectinload(Repertoire.items).selectinload(RepertoireItem.clip))
+    if not user.is_admin:
+        query = query.where(Repertoire.is_private == False)
+    query = query.order_by(Repertoire.created_at.desc())
+    repertoires = session.exec(query).all()
+
+    result = []
+    for rep in repertoires:
+        item_count = len(rep.items)
+        total_duration = sum(item.clip.duration_seconds for item in rep.items if item.clip)
+        result.append(RepertoireRead(
+            id=rep.id,
+            name=rep.name,
+            description=rep.description,
+            is_private=rep.is_private,
+            created_at=rep.created_at,
+            updated_at=rep.updated_at,
+            item_count=item_count,
+            total_duration_seconds=total_duration
+        ))
+    return result
+
+@app.post("/api/repertoires", response_model=RepertoireRead)
+def create_repertoire(repertoire_data: RepertoireCreate, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    rep = Repertoire(
+        name=repertoire_data.name,
+        description=repertoire_data.description,
+        is_private=repertoire_data.is_private if user.is_admin else False
+    )
+    session.add(rep)
+    session.commit()
+    session.refresh(rep)
+    return RepertoireRead(
+        id=rep.id,
+        name=rep.name,
+        description=rep.description,
+        is_private=rep.is_private,
+        created_at=rep.created_at,
+        updated_at=rep.updated_at,
+        item_count=0,
+        total_duration_seconds=0.0
+    )
+
+@app.get("/api/repertoires/{repertoire_id}", response_model=RepertoireDetailRead)
+def read_repertoire(repertoire_id: int, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    from sqlalchemy.orm import selectinload
+    query = select(Repertoire).where(Repertoire.id == repertoire_id).options(
+        selectinload(Repertoire.items).selectinload(RepertoireItem.clip).selectinload(Clip.song),
+        selectinload(Repertoire.items).selectinload(RepertoireItem.song)
+    )
+    rep = session.exec(query).first()
+    if not rep:
+        raise HTTPException(status_code=404, detail="Repertoire not found")
+    if rep.is_private and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    sorted_items = sorted(rep.items, key=lambda x: x.position)
+    total_duration = sum(item.clip.duration_seconds for item in sorted_items if item.clip)
+
+    items_read = []
+    for item in sorted_items:
+        items_read.append(RepertoireItemRead(
+            id=item.id,
+            repertoire_id=item.repertoire_id,
+            clip_id=item.clip_id,
+            song_id=item.song_id,
+            position=item.position,
+            notes=item.notes,
+            created_at=item.created_at,
+            clip=ClipRead.model_validate(item.clip) if item.clip else None,
+            song=SongRead.model_validate(item.song) if item.song else None
+        ))
+
+    return RepertoireDetailRead(
+        id=rep.id,
+        name=rep.name,
+        description=rep.description,
+        is_private=rep.is_private,
+        created_at=rep.created_at,
+        updated_at=rep.updated_at,
+        item_count=len(sorted_items),
+        total_duration_seconds=total_duration,
+        items=items_read
+    )
+
+@app.patch("/api/repertoires/{repertoire_id}", response_model=RepertoireRead)
+def update_repertoire(repertoire_id: int, rep_update: RepertoireUpdate, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    rep = session.get(Repertoire, repertoire_id)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Repertoire not found")
+    if rep.is_private and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if rep_update.name is not None:
+        rep.name = rep_update.name
+    if rep_update.description is not None:
+        rep.description = rep_update.description
+    if rep_update.is_private is not None and user.is_admin:
+        rep.is_private = rep_update.is_private
+    rep.updated_at = datetime.utcnow()
+
+    session.add(rep)
+    session.commit()
+    session.refresh(rep)
+
+    from sqlalchemy.orm import selectinload
+    items = session.exec(select(RepertoireItem).where(RepertoireItem.repertoire_id == rep.id).options(selectinload(RepertoireItem.clip))).all()
+    duration = sum(item.clip.duration_seconds for item in items if item.clip)
+    return RepertoireRead(
+        id=rep.id,
+        name=rep.name,
+        description=rep.description,
+        is_private=rep.is_private,
+        created_at=rep.created_at,
+        updated_at=rep.updated_at,
+        item_count=len(items),
+        total_duration_seconds=duration
+    )
+
+@app.delete("/api/repertoires/{repertoire_id}")
+def delete_repertoire(repertoire_id: int, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    rep = session.get(Repertoire, repertoire_id)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Repertoire not found")
+    if rep.is_private and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    items = session.exec(select(RepertoireItem).where(RepertoireItem.repertoire_id == repertoire_id)).all()
+    for item in items:
+        session.delete(item)
+    session.delete(rep)
+    session.commit()
+    return {"ok": True}
+
+@app.post("/api/repertoires/{repertoire_id}/items", response_model=RepertoireItemRead)
+def add_repertoire_item(repertoire_id: int, item_data: RepertoireItemCreate, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    rep = session.get(Repertoire, repertoire_id)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Repertoire not found")
+    if rep.is_private and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    clip = None
+    if item_data.clip_id:
+        clip = session.get(Clip, item_data.clip_id)
+        if not clip:
+            raise HTTPException(status_code=404, detail="Clip not found")
+
+    song_id = item_data.song_id or (clip.song_id if clip else None)
+
+    if item_data.position is not None:
+        pos = item_data.position
+    else:
+        existing_items = session.exec(select(RepertoireItem).where(RepertoireItem.repertoire_id == repertoire_id)).all()
+        pos = max([i.position for i in existing_items], default=-1) + 1
+
+    new_item = RepertoireItem(
+        repertoire_id=repertoire_id,
+        clip_id=item_data.clip_id,
+        song_id=song_id,
+        position=pos,
+        notes=item_data.notes
+    )
+    rep.updated_at = datetime.utcnow()
+    session.add(rep)
+    session.add(new_item)
+    session.commit()
+    session.refresh(new_item)
+
+    from sqlalchemy.orm import selectinload
+    item_loaded = session.exec(
+        select(RepertoireItem).where(RepertoireItem.id == new_item.id).options(
+            selectinload(RepertoireItem.clip).selectinload(Clip.song),
+            selectinload(RepertoireItem.song)
+        )
+    ).first()
+
+    return RepertoireItemRead(
+        id=item_loaded.id,
+        repertoire_id=item_loaded.repertoire_id,
+        clip_id=item_loaded.clip_id,
+        song_id=item_loaded.song_id,
+        position=item_loaded.position,
+        notes=item_loaded.notes,
+        created_at=item_loaded.created_at,
+        clip=ClipRead.model_validate(item_loaded.clip) if item_loaded.clip else None,
+        song=SongRead.model_validate(item_loaded.song) if item_loaded.song else None
+    )
+
+@app.post("/api/repertoires/{repertoire_id}/items/batch")
+def batch_add_repertoire_items(repertoire_id: int, request: RepertoireBatchAddRequest, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    rep = session.get(Repertoire, repertoire_id)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Repertoire not found")
+    if rep.is_private and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if not request.clip_ids:
+        return {"ok": True, "added_count": 0}
+
+    existing_items = session.exec(select(RepertoireItem).where(RepertoireItem.repertoire_id == repertoire_id)).all()
+    curr_pos = max([i.position for i in existing_items], default=-1) + 1
+
+    clips = session.exec(select(Clip).where(Clip.id.in_(request.clip_ids))).all()
+    clips_by_id = {c.id: c for c in clips}
+
+    added_count = 0
+    for clip_id in request.clip_ids:
+        clip = clips_by_id.get(clip_id)
+        if not clip:
+            continue
+        new_item = RepertoireItem(
+            repertoire_id=repertoire_id,
+            clip_id=clip.id,
+            song_id=clip.song_id,
+            position=curr_pos + added_count
+        )
+        session.add(new_item)
+        added_count += 1
+
+    rep.updated_at = datetime.utcnow()
+    session.add(rep)
+    session.commit()
+    return {"ok": True, "added_count": added_count}
+
+@app.patch("/api/repertoires/{repertoire_id}/items/{item_id}", response_model=RepertoireItemRead)
+def update_repertoire_item(repertoire_id: int, item_id: int, item_update: RepertoireItemUpdate, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    item = session.get(RepertoireItem, item_id)
+    if not item or item.repertoire_id != repertoire_id:
+        raise HTTPException(status_code=404, detail="Repertoire item not found")
+    if item.repertoire and item.repertoire.is_private and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if item_update.notes is not None:
+        item.notes = item_update.notes
+    if item_update.position is not None:
+        item.position = item_update.position
+
+    if item.repertoire:
+        item.repertoire.updated_at = datetime.utcnow()
+        session.add(item.repertoire)
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+
+    from sqlalchemy.orm import selectinload
+    item_loaded = session.exec(
+        select(RepertoireItem).where(RepertoireItem.id == item.id).options(
+            selectinload(RepertoireItem.clip).selectinload(Clip.song),
+            selectinload(RepertoireItem.song)
+        )
+    ).first()
+
+    return RepertoireItemRead(
+        id=item_loaded.id,
+        repertoire_id=item_loaded.repertoire_id,
+        clip_id=item_loaded.clip_id,
+        song_id=item_loaded.song_id,
+        position=item_loaded.position,
+        notes=item_loaded.notes,
+        created_at=item_loaded.created_at,
+        clip=ClipRead.model_validate(item_loaded.clip) if item_loaded.clip else None,
+        song=SongRead.model_validate(item_loaded.song) if item_loaded.song else None
+    )
+
+@app.delete("/api/repertoires/{repertoire_id}/items/{item_id}")
+def delete_repertoire_item(repertoire_id: int, item_id: int, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    item = session.get(RepertoireItem, item_id)
+    if not item or item.repertoire_id != repertoire_id:
+        raise HTTPException(status_code=404, detail="Repertoire item not found")
+    if item.repertoire and item.repertoire.is_private and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    rep = item.repertoire
+    session.delete(item)
+    session.commit()
+
+    remaining_items = session.exec(
+        select(RepertoireItem).where(RepertoireItem.repertoire_id == repertoire_id).order_by(RepertoireItem.position.asc())
+    ).all()
+    for idx, rem_item in enumerate(remaining_items):
+        rem_item.position = idx
+        session.add(rem_item)
+    if rep:
+        rep.updated_at = datetime.utcnow()
+        session.add(rep)
+    session.commit()
+    return {"ok": True}
+
+@app.put("/api/repertoires/{repertoire_id}/reorder")
+def reorder_repertoire_items(repertoire_id: int, request: RepertoireReorderRequest, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    rep = session.get(Repertoire, repertoire_id)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Repertoire not found")
+    if rep.is_private and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    items = session.exec(select(RepertoireItem).where(RepertoireItem.repertoire_id == repertoire_id)).all()
+    items_by_id = {i.id: i for i in items}
+
+    for new_pos, item_id in enumerate(request.item_ids):
+        item = items_by_id.get(item_id)
+        if item:
+            item.position = new_pos
+            session.add(item)
+
+    rep.updated_at = datetime.utcnow()
+    session.add(rep)
+    session.commit()
+    return {"ok": True}
 
 def get_local_clip_path(file_path: str) -> str:
     """Helper to ensure paths work regardless of the absolute path stored in the DB."""

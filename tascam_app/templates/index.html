@@ -31,7 +31,8 @@
                 <button id="btn-install" class="btn-install hidden">Install App</button>
             </div>
             <nav class="main-nav">
-                <button id="nav-songs" class="btn-nav active">Songs</button>
+                <button id="nav-repertoire" class="btn-nav active">Repertoar</button>
+                <button id="nav-songs" class="btn-nav">Songs</button>
                 <button id="nav-library" class="btn-nav">Library</button>
                 {% if user and user.is_admin %}
                 <a href="/admin" class="btn-nav" style="text-decoration: none; border-left: 1px solid var(--border); padding-left: 10px;">Admin</a>
@@ -41,7 +42,45 @@
         </header>
 
         <main>
-            <div id="songs-view" class="view">
+            <div id="repertoire-view" class="view">
+                <div class="song-list-container">
+                    <!-- Repertoires Overview (Default Start Screen) -->
+                    <div id="repertoire-list-section">
+                        <div class="header-row">
+                            <h2>Repertoar</h2>
+                            <button id="btn-new-repertoire" class="btn-primary">+ Nytt repertoar</button>
+                        </div>
+                        <div id="repertoire-list" class="repertoire-list">
+                            <!-- Injected by JS -->
+                            <div class="loading">Laster repertoar...</div>
+                        </div>
+                    </div>
+
+                    <!-- Repertoire Detail -->
+                    <div id="repertoire-detail-section" class="hidden">
+                        <div class="detail-nav-row">
+                            <button id="btn-back-to-repertoires" class="btn-secondary">← Alle repertoarer</button>
+                        </div>
+                        <div class="header-row detail-header">
+                            <div class="rep-title-box">
+                                <h2 id="rep-detail-title" class="editable" title="Klikk for å endre tittel">Repertoar</h2>
+                                <p id="rep-detail-desc" class="editable text-muted" title="Klikk for å endre beskrivelse"></p>
+                                <div id="rep-detail-meta" class="rep-meta-line"></div>
+                            </div>
+                            <div class="rep-header-actions">
+                                <button id="btn-rep-play-all" class="btn-primary" title="Spill alle i rekkefølge">▶ Spill alle</button>
+                                <button id="btn-rep-add-songs" class="btn-secondary" title="Gå til opptak for å legge til">+ Legg til sanger</button>
+                                <button id="btn-rep-delete" class="btn-danger-outline" title="Slett repertoar">🗑 Slett</button>
+                            </div>
+                        </div>
+                        <div id="repertoire-items-list" class="repertoire-items-list">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="songs-view" class="view hidden">
                 <div class="song-list-container">
                     <div class="header-row">
                         <h2>Named Songs</h2>
@@ -57,6 +96,7 @@
                     <div class="header-row">
                         <h2>Recordings</h2>
                         <div id="batch-actions" class="batch-actions hidden">
+                            <button id="btn-batch-add-repertoire" class="btn-primary">📋 Legg til i repertoar (<span id="batch-rep-count">0</span>)</button>
                             <button id="btn-batch-delete" class="btn-danger">Delete Selected (<span
                                     id="selected-count">0</span>)</button>
                         </div>
@@ -119,7 +159,60 @@
         </main>
     </div>
 
-    <script type="module" src="/static/app.js?v=5"></script>
+    <!-- Modal: Nytt Repertoar -->
+    <div id="modal-new-repertoire" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nytt Repertoar</h3>
+                <button class="modal-close" id="btn-close-new-rep-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="input-rep-name">Navn på repertoar</label>
+                    <input type="text" id="input-rep-name" placeholder="F.eks. Sommerturné 2026, Akustisk sett..." autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="input-rep-desc">Beskrivelse (valgfritt)</label>
+                    <input type="text" id="input-rep-desc" placeholder="F.eks. Låter til øving torsdager" autocomplete="off">
+                </div>
+                {% if user and user.is_admin %}
+                <div class="form-group form-check">
+                    <label>
+                        <input type="checkbox" id="input-rep-private">
+                        <span>Privat (kun synlig for admin)</span>
+                    </label>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel-new-rep" class="btn-secondary">Avbryt</button>
+                <button id="btn-create-rep-submit" class="btn-primary">Opprett</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Legg til i repertoar -->
+    <div id="modal-add-to-repertoire" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="add-to-rep-title">Legg til i repertoar</h3>
+                <button class="modal-close" id="btn-close-add-to-rep-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="add-to-rep-subtitle" class="text-secondary" style="margin-bottom: 15px;"></p>
+                <div id="add-to-rep-options" class="rep-select-list">
+                    <!-- Populated dynamically with repertoires -->
+                </div>
+                <div class="modal-divider">eller</div>
+                <button id="btn-modal-open-create-rep" class="btn-secondary full-width">+ Opprett nytt repertoar</button>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel-add-to-rep" class="btn-secondary">Lukk</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/static/app.js?v=6"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

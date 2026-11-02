@@ -14,9 +14,16 @@ This project is a Tascam audio processing and playback application. The backend 
 * `SourceFile Schema` -> [tascam_app/models.py](file:///home/njaal/git/tascam/tascam_app/models.py)
 * `Song Schema` -> [tascam_app/models.py](file:///home/njaal/git/tascam/tascam_app/models.py)
 * `Clip Schema` -> [tascam_app/models.py](file:///home/njaal/git/tascam/tascam_app/models.py)
+* `Repertoire & RepertoireItem Schema` -> [tascam_app/models.py](file:///home/njaal/git/tascam/tascam_app/models.py)
 
 ## D. Data Flow / Request Lifecycle
-1. **User Request**: User interacts with the UI shell -> Frontend JavaScript ([app.js](file:///home/njaal/git/tascam/tascam_app/static/app.js))
+1. **User Request**: User opens app (default start screen: Repertoire) or switches to Songs / Library -> Frontend JavaScript ([app.js](file:///home/njaal/git/tascam/tascam_app/static/app.js))
 2. **API Routes**: HTTP requests are processed by FastAPI endpoints ([web.py](file:///home/njaal/git/tascam/tascam_app/web.py))
 3. **Database Layer**: CRUD actions are executed via SQLModel engine ([database.py](file:///home/njaal/git/tascam/tascam_app/database.py)) -> SQLite/Postgres DB
 4. **Ingestion Pipeline**: Command Line interface ([process.py](file:///home/njaal/git/tascam/process.py)) -> Audio processor ([audio_processor.py](file:///home/njaal/git/tascam/tascam_app/audio_processor.py)) -> database updates and MP3 generation ([data/clips](file:///home/njaal/git/tascam/data/clips))
+
+## E. Key Commands
+* Test: `uv run pytest`
+* Dev Server: `uv run uvicorn tascam_app.web:app --host 0.0.0.0 --reload`
+* Ingestion: `uv run python process.py import-dir /path/to/wav/files`
+

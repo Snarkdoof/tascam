@@ -13,10 +13,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedCountSpan = document.getElementById('selected-count');
     
     // View Navigation
-    const navLibrary = document.getElementById('nav-library');
+    const navRepertoire = document.getElementById('nav-repertoire');
     const navSongs = document.getElementById('nav-songs');
-    const libraryView = document.getElementById('library-view');
+    const navLibrary = document.getElementById('nav-library');
+    const repertoireView = document.getElementById('repertoire-view');
     const songsView = document.getElementById('songs-view');
+    const libraryView = document.getElementById('library-view');
+
+    // Repertoire Elements
+    const repertoireListSection = document.getElementById('repertoire-list-section');
+    const repertoireDetailSection = document.getElementById('repertoire-detail-section');
+    const repertoireList = document.getElementById('repertoire-list');
+    const repertoireItemsList = document.getElementById('repertoire-items-list');
+    const btnNewRepertoire = document.getElementById('btn-new-repertoire');
+    const btnBackToRepertoires = document.getElementById('btn-back-to-repertoires');
+    const repDetailTitle = document.getElementById('rep-detail-title');
+    const repDetailDesc = document.getElementById('rep-detail-desc');
+    const repDetailMeta = document.getElementById('rep-detail-meta');
+    const btnRepPlayAll = document.getElementById('btn-rep-play-all');
+    const btnRepAddSongs = document.getElementById('btn-rep-add-songs');
+    const btnRepDelete = document.getElementById('btn-rep-delete');
+    const btnBatchAddRepertoire = document.getElementById('btn-batch-add-repertoire');
+    const batchRepCount = document.getElementById('batch-rep-count');
+
+    // Modals
+    const modalNewRep = document.getElementById('modal-new-repertoire');
+    const btnCloseNewRepModal = document.getElementById('btn-close-new-rep-modal');
+    const btnCancelNewRep = document.getElementById('btn-cancel-new-rep');
+    const btnCreateRepSubmit = document.getElementById('btn-create-rep-submit');
+    const inputRepName = document.getElementById('input-rep-name');
+    const inputRepDesc = document.getElementById('input-rep-desc');
+    const inputRepPrivate = document.getElementById('input-rep-private');
+
+    const modalAddToRep = document.getElementById('modal-add-to-repertoire');
+    const btnCloseAddToRepModal = document.getElementById('btn-close-add-to-rep-modal');
+    const btnCancelAddToRep = document.getElementById('btn-cancel-add-to-rep');
+    const addToRepTitle = document.getElementById('add-to-rep-title');
+    const addToRepSubtitle = document.getElementById('add-to-rep-subtitle');
+    const addToRepOptions = document.getElementById('add-to-rep-options');
+    const btnModalOpenCreateRep = document.getElementById('btn-modal-open-create-rep');
 
     // Player Controls
     const btnPlayPause = document.getElementById('btn-play-pause');
@@ -41,10 +76,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // State
     let clips = [];
     let namedSongs = [];
+    let repertoires = [];
+    let currentRepertoire = null;
+    let repertoirePlayback = null; // { repId, items, currentIndex }
+    let isAdvancingTrack = false;
+    let pendingClipsToAdd = [];
     let currentClip = null;
     let selectedClipIds = new Set();
     let loopMode = 'off';
     let loopSection = null;
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, 
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
     // Handle unauthorized calls by clearing all caches and redirecting to root
     async function handleUnauthorized() {
         if ('caches' in window) {
@@ -117,6 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pos >= loopSection.end - 0.05 || pos < loopSection.start - 0.1) {
                 to.update({ position: loopSection.start, velocity: 1 });
             }
+        } else if (loopMode === 'off' && repertoirePlayback && duration > 0 && pos >= duration - 0.15) {
+            playNextRepertoireTrack();
         }
     });
 
@@ -124,6 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
     player.addEventListener('ended', () => {
         if (loopMode !== 'off' && loopSection) {
             to.update({ position: loopSection.start, velocity: 1 });
+        } else if (loopMode === 'off' && repertoirePlayback) {
+            playNextRepertoireTrack();
         }
     });
 
@@ -133,17 +184,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Navigation Buttons
+    navRepertoire.addEventListener('click', () => {
+        navRepertoire.classList.add('active');
+        navSongs.classList.remove('active');
+        navLibrary.classList.remove('active');
+        repertoireView.classList.remove('hidden');
+        songsView.classList.add('hidden');
+        libraryView.classList.add('hidden');
+        fetchRepertoires();
+    });
+
     navLibrary.addEventListener('click', () => {
         navLibrary.classList.add('active');
+        navRepertoire.classList.remove('active');
         navSongs.classList.remove('active');
         libraryView.classList.remove('hidden');
+        repertoireView.classList.add('hidden');
         songsView.classList.add('hidden');
     });
 
     navSongs.addEventListener('click', () => {
         navSongs.classList.add('active');
+        navRepertoire.classList.remove('active');
         navLibrary.classList.remove('active');
         songsView.classList.remove('hidden');
+        repertoireView.classList.add('hidden');
         libraryView.classList.add('hidden');
         fetchNamedSongs();
     });
@@ -391,6 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateBatchActions() {
         const count = selectedClipIds.size;
         selectedCountSpan.textContent = count;
+        if (batchRepCount) batchRepCount.textContent = count;
         batchActions.classList.toggle('hidden', count === 0);
     }
 
@@ -479,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             <div class="clip-actions">
+                <button class="btn-add-rep" title="Legg til i repertoar">+ Rep</button>
                 ${privateToggleHTML}
                 <button class="btn-download" title="Download">⬇️</button>
                 <button class="btn-delete" title="Delete">🗑</button>
@@ -490,6 +557,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target.checked) selectedClipIds.add(clip.id);
             else selectedClipIds.delete(clip.id);
             updateBatchActions();
+        });
+
+        div.querySelector('.btn-add-rep').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openAddToRepertoireModal([clip.id], songTitle);
         });
 
         if (window.IS_ADMIN) {
@@ -592,9 +664,29 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="clip-actions">
+                        <button class="btn-add-rep" title="Legg til i repertoar">+ Rep</button>
                         ${privateToggleHTML}
                     </div>
                 `;
+
+                div.querySelector('.btn-add-rep').addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    try {
+                        const res = await fetch(`/api/songs/${song.id}/clips`);
+                        if (res.status === 401) {
+                            handleUnauthorized();
+                            return;
+                        }
+                        const songClips = await res.json();
+                        if (songClips && songClips.length > 0) {
+                            openAddToRepertoireModal([songClips[0].id], song.title);
+                        } else {
+                            alert("Ingen opptak funnet for denne sangen.");
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    }
+                });
 
                 if (window.IS_ADMIN) {
                     const privateToggle = div.querySelector('.song-private-toggle');
@@ -721,7 +813,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function playClip(clip) {
+    function playClip(clip, isRepertoirePlay = false) {
+        if (!isRepertoirePlay) {
+            repertoirePlayback = null;
+            highlightActiveRepertoireItem(-1);
+        }
         currentClip = clip;
         loopMode = 'off';
         loopSection = null;
@@ -882,7 +978,579 @@ document.addEventListener('DOMContentLoaded', () => {
         renderLoopControls();
     }
 
+    // ==========================================
+    // Continuous Setlist Playback
+    // ==========================================
+    function highlightActiveRepertoireItem(activeIdx) {
+        if (!repertoireItemsList) return;
+        const rows = repertoireItemsList.querySelectorAll('.repertoire-item-row');
+        rows.forEach((row, idx) => {
+            row.classList.toggle('is-active', idx === activeIdx);
+        });
+    }
+
+    function playNextRepertoireTrack() {
+        if (!repertoirePlayback || isAdvancingTrack) return;
+        isAdvancingTrack = true;
+        setTimeout(() => { isAdvancingTrack = false; }, 800);
+
+        const { items, currentIndex } = repertoirePlayback;
+        if (currentIndex + 1 < items.length) {
+            repertoirePlayback.currentIndex = currentIndex + 1;
+            const nextItem = items[repertoirePlayback.currentIndex];
+            if (nextItem && nextItem.clip) {
+                if (!nextItem.clip.song && nextItem.song) {
+                    nextItem.clip.song = nextItem.song;
+                }
+                highlightActiveRepertoireItem(repertoirePlayback.currentIndex);
+                playClip(nextItem.clip, true);
+            }
+        } else {
+            // Reached the end of the setlist
+            repertoirePlayback = null;
+            highlightActiveRepertoireItem(-1);
+        }
+    }
+
+    // ==========================================
+    // Repertoire Management Logic
+    // ==========================================
+    async function fetchRepertoires() {
+        if (!repertoireList) return;
+        try {
+            const res = await fetch('/api/repertoires');
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to load repertoires");
+            repertoires = await res.json();
+            renderRepertoireList();
+        } catch (err) {
+            console.error(err);
+            repertoireList.innerHTML = '<div class="error">Kunne ikke laste repertoarer</div>';
+        }
+    }
+
+    function renderRepertoireList() {
+        if (!repertoireList) return;
+        repertoireList.innerHTML = '';
+        if (!repertoires || repertoires.length === 0) {
+            repertoireList.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1; padding: 40px 20px; text-align: center; color: var(--text-secondary); background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+                    <p style="font-size: 1.1rem; margin-bottom: 10px;">Ingen repertoarer opprettet enda.</p>
+                    <p style="font-size: 0.9rem;">Klikk på <strong>+ Nytt repertoar</strong> for å lage din første settliste!</p>
+                </div>
+            `;
+            return;
+        }
+
+        repertoires.forEach(rep => {
+            const card = document.createElement('div');
+            card.className = 'repertoire-card';
+            card.innerHTML = `
+                <div>
+                    <div class="repertoire-card-header">
+                        <h3 class="repertoire-card-title">${escapeHTML(rep.name)}</h3>
+                        ${rep.is_private ? '<span title="Privat">🔒</span>' : ''}
+                    </div>
+                    <div class="repertoire-card-desc">${rep.description ? escapeHTML(rep.description) : '<span style="font-style: italic;">Ingen beskrivelse</span>'}</div>
+                </div>
+                <div class="repertoire-card-footer">
+                    <div class="repertoire-card-stats">
+                        <span>🎵 ${rep.item_count} ${rep.item_count === 1 ? 'låt' : 'låter'}</span>
+                        <span>⏱ ${formatDuration(rep.total_duration_seconds)}</span>
+                    </div>
+                    <span style="color: var(--accent); font-weight: 500;">Åpne →</span>
+                </div>
+            `;
+            card.addEventListener('click', () => openRepertoire(rep.id));
+            repertoireList.appendChild(card);
+        });
+    }
+
+    async function openRepertoire(repId) {
+        try {
+            const res = await fetch(`/api/repertoires/${repId}`);
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to load repertoire");
+            currentRepertoire = await res.json();
+            if (repertoireListSection) repertoireListSection.classList.add('hidden');
+            if (repertoireDetailSection) repertoireDetailSection.classList.remove('hidden');
+            renderRepertoireDetail();
+        } catch (err) {
+            console.error(err);
+            alert("Kunne ikke åpne repertoaret");
+        }
+    }
+
+    function renderRepertoireDetail() {
+        if (!currentRepertoire) return;
+
+        if (repDetailTitle) repDetailTitle.textContent = currentRepertoire.name;
+        if (repDetailDesc) repDetailDesc.textContent = currentRepertoire.description || 'Legg til beskrivelse...';
+        if (repDetailMeta) {
+            repDetailMeta.innerHTML = `
+                <span>🎵 ${currentRepertoire.item_count} ${currentRepertoire.item_count === 1 ? 'låt' : 'låter'}</span>
+                <span>⏱ ${formatDuration(currentRepertoire.total_duration_seconds)} samlet spilletid</span>
+                ${currentRepertoire.is_private ? '<span>🔒 Privat</span>' : ''}
+            `;
+        }
+
+        if (!repertoireItemsList) return;
+        repertoireItemsList.innerHTML = '';
+        const items = currentRepertoire.items || [];
+
+        if (items.length === 0) {
+            repertoireItemsList.innerHTML = `
+                <div style="padding: 30px 20px; text-align: center; color: var(--text-secondary); background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+                    <p style="margin-bottom: 10px;">Dette repertoaret er tomt.</p>
+                    <p style="font-size: 0.9rem;">Gå til <strong>Library</strong> eller <strong>Songs</strong> og klikk <strong>+ Rep</strong> for å legge til låter.</p>
+                </div>
+            `;
+            return;
+        }
+
+        items.forEach((item, idx) => {
+            const clip = item.clip;
+            const songTitle = (clip && clip.song?.title) ? clip.song.title : (item.song?.title || `Opptak #${item.clip_id || item.id}`);
+            const durationStr = clip ? formatDuration(clip.duration_seconds) : '-';
+            const tempoStr = (clip && clip.tempo) ? `${Math.round(clip.tempo)} BPM` : '';
+            const notesStr = item.notes || '';
+
+            const row = document.createElement('div');
+            row.className = 'repertoire-item-row';
+            row.dataset.itemId = item.id;
+            row.dataset.idx = idx;
+
+            if (repertoirePlayback && repertoirePlayback.repId === currentRepertoire.id && repertoirePlayback.currentIndex === idx) {
+                row.classList.add('is-active');
+            }
+
+            row.innerHTML = `
+                <div class="rep-item-left">
+                    <div class="rep-item-reorder">
+                        <button class="btn-reorder btn-move-up" title="Flytt opp" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                        <button class="btn-reorder btn-move-down" title="Flytt ned" ${idx === items.length - 1 ? 'disabled' : ''}>▼</button>
+                    </div>
+                    <span class="rep-item-pos">#${idx + 1}</span>
+                    <div class="clip-play-btn" title="Spill fra denne låten">▶</div>
+                    <div class="rep-item-details">
+                        <div class="rep-item-title">${escapeHTML(songTitle)}</div>
+                        <div class="rep-item-meta">
+                            <span>${durationStr}</span>
+                            ${tempoStr ? `<span>${tempoStr}</span>` : ''}
+                            <span class="rep-item-notes" data-empty="${notesStr ? 'false' : 'true'}" title="Klikk for å endre notat">${notesStr ? escapeHTML(notesStr) : ''}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="clip-actions">
+                    <button class="btn-delete btn-remove-item" title="Fjern fra repertoar">✕</button>
+                </div>
+            `;
+
+            // Play from here
+            row.querySelector('.clip-play-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (clip) {
+                    if (!clip.song && item.song) {
+                        clip.song = item.song;
+                    }
+                    repertoirePlayback = {
+                        repId: currentRepertoire.id,
+                        items: currentRepertoire.items,
+                        currentIndex: idx
+                    };
+                    highlightActiveRepertoireItem(idx);
+                    playClip(clip, true);
+                }
+            });
+
+            // Move Up
+            row.querySelector('.btn-move-up').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (idx > 0) moveRepertoireItem(idx, idx - 1);
+            });
+
+            // Move Down
+            row.querySelector('.btn-move-down').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (idx < items.length - 1) moveRepertoireItem(idx, idx + 1);
+            });
+
+            // Edit Notes
+            const notesEl = row.querySelector('.rep-item-notes');
+            notesEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleEditItemNotes(item, notesEl);
+            });
+
+            // Remove from Repertoire
+            row.querySelector('.btn-remove-item').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm(`Fjern "${songTitle}" fra dette repertoaret?`)) {
+                    await deleteRepertoireItem(item.id);
+                }
+            });
+
+            repertoireItemsList.appendChild(row);
+        });
+    }
+
+    async function moveRepertoireItem(fromIdx, toIdx) {
+        if (!currentRepertoire || !currentRepertoire.items) return;
+        const items = [...currentRepertoire.items];
+        const [moved] = items.splice(fromIdx, 1);
+        items.splice(toIdx, 0, moved);
+
+        items.forEach((item, idx) => item.position = idx);
+        currentRepertoire.items = items;
+        renderRepertoireDetail();
+
+        try {
+            const itemIds = items.map(i => i.id);
+            const res = await fetch(`/api/repertoires/${currentRepertoire.id}/reorder`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_ids: itemIds })
+            });
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to reorder");
+        } catch (err) {
+            console.error(err);
+            alert("Kunne ikke lagre ny rekkefølge");
+            openRepertoire(currentRepertoire.id);
+        }
+    }
+
+    function handleEditItemNotes(item, notesEl) {
+        const currentNotes = item.notes || '';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentNotes;
+        input.className = 'edit-input';
+        input.placeholder = 'F.eks. Drop D, 4 takter intro...';
+        notesEl.replaceWith(input);
+        input.focus();
+
+        const save = async () => {
+            const newNotes = input.value.trim();
+            item.notes = newNotes;
+            renderRepertoireDetail();
+
+            try {
+                const res = await fetch(`/api/repertoires/${currentRepertoire.id}/items/${item.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes: newNotes })
+                });
+                if (res.status === 401) {
+                    handleUnauthorized();
+                    return;
+                }
+                if (!res.ok) throw new Error("Failed to update notes");
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        input.addEventListener('blur', save);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') save();
+        });
+    }
+
+    async function deleteRepertoireItem(itemId) {
+        try {
+            const res = await fetch(`/api/repertoires/${currentRepertoire.id}/items/${itemId}`, {
+                method: 'DELETE'
+            });
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to delete item");
+            await openRepertoire(currentRepertoire.id);
+        } catch (err) {
+            console.error(err);
+            alert("Kunne ikke fjerne låten");
+        }
+    }
+
+    async function updateRepertoireMeta(fields) {
+        try {
+            const res = await fetch(`/api/repertoires/${currentRepertoire.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(fields)
+            });
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to update repertoire");
+            const updated = await res.json();
+            currentRepertoire.name = updated.name;
+            currentRepertoire.description = updated.description;
+            renderRepertoireDetail();
+        } catch (err) {
+            console.error(err);
+            alert("Kunne ikke oppdatere repertoar");
+        }
+    }
+
+    if (repDetailTitle) {
+        repDetailTitle.addEventListener('click', () => {
+            if (!currentRepertoire) return;
+            const newName = prompt("Endre navn på repertoar:", currentRepertoire.name);
+            if (newName && newName.trim() && newName.trim() !== currentRepertoire.name) {
+                updateRepertoireMeta({ name: newName.trim() });
+            }
+        });
+    }
+
+    if (repDetailDesc) {
+        repDetailDesc.addEventListener('click', () => {
+            if (!currentRepertoire) return;
+            const newDesc = prompt("Endre beskrivelse:", currentRepertoire.description || "");
+            if (newDesc !== null && newDesc.trim() !== (currentRepertoire.description || "")) {
+                updateRepertoireMeta({ description: newDesc.trim() });
+            }
+        });
+    }
+
+    if (btnBackToRepertoires) {
+        btnBackToRepertoires.addEventListener('click', () => {
+            if (repertoireDetailSection) repertoireDetailSection.classList.add('hidden');
+            if (repertoireListSection) repertoireListSection.classList.remove('hidden');
+            currentRepertoire = null;
+            fetchRepertoires();
+        });
+    }
+
+    if (btnRepPlayAll) {
+        btnRepPlayAll.addEventListener('click', () => {
+            if (!currentRepertoire || !currentRepertoire.items || currentRepertoire.items.length === 0) {
+                alert("Ingen sanger i dette repertoaret.");
+                return;
+            }
+            const firstItem = currentRepertoire.items[0];
+            if (firstItem && firstItem.clip) {
+                if (!firstItem.clip.song && firstItem.song) {
+                    firstItem.clip.song = firstItem.song;
+                }
+                repertoirePlayback = {
+                    repId: currentRepertoire.id,
+                    items: currentRepertoire.items,
+                    currentIndex: 0
+                };
+                highlightActiveRepertoireItem(0);
+                playClip(firstItem.clip, true);
+            }
+        });
+    }
+
+    if (btnRepAddSongs) {
+        btnRepAddSongs.addEventListener('click', () => {
+            navLibrary.click();
+        });
+    }
+
+    if (btnRepDelete) {
+        btnRepDelete.addEventListener('click', async () => {
+            if (!currentRepertoire) return;
+            if (confirm(`Er du sikker på at du vil slette repertoaret "${currentRepertoire.name}"? Lydfilene og sangene blir værende i biblioteket.`)) {
+                try {
+                    const res = await fetch(`/api/repertoires/${currentRepertoire.id}`, {
+                        method: 'DELETE'
+                    });
+                    if (res.status === 401) {
+                        handleUnauthorized();
+                        return;
+                    }
+                    if (!res.ok) throw new Error("Failed to delete repertoire");
+                    if (repertoireDetailSection) repertoireDetailSection.classList.add('hidden');
+                    if (repertoireListSection) repertoireListSection.classList.remove('hidden');
+                    currentRepertoire = null;
+                    fetchRepertoires();
+                } catch (err) {
+                    console.error(err);
+                    alert("Kunne ikke slette repertoaret");
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // Modals: Add to Repertoire & Create New
+    // ==========================================
+    function openNewRepertoireModal(clipIds = null) {
+        if (clipIds) pendingClipsToAdd = clipIds;
+        if (modalNewRep) modalNewRep.classList.remove('hidden');
+        if (inputRepName) {
+            inputRepName.value = '';
+            inputRepName.focus();
+        }
+        if (inputRepDesc) inputRepDesc.value = '';
+        if (inputRepPrivate) inputRepPrivate.checked = false;
+    }
+
+    function closeNewRepertoireModal() {
+        if (modalNewRep) modalNewRep.classList.add('hidden');
+    }
+
+    if (btnNewRepertoire) {
+        btnNewRepertoire.addEventListener('click', () => openNewRepertoireModal());
+    }
+    if (btnCloseNewRepModal) btnCloseNewRepModal.addEventListener('click', closeNewRepertoireModal);
+    if (btnCancelNewRep) btnCancelNewRep.addEventListener('click', closeNewRepertoireModal);
+
+    if (btnCreateRepSubmit) {
+        btnCreateRepSubmit.addEventListener('click', async () => {
+            const name = inputRepName.value.trim();
+            if (!name) {
+                alert("Vennligst skriv inn et navn på repertoaret.");
+                inputRepName.focus();
+                return;
+            }
+            const description = inputRepDesc.value.trim();
+            const is_private = inputRepPrivate ? inputRepPrivate.checked : false;
+
+            try {
+                const res = await fetch('/api/repertoires', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description, is_private })
+                });
+                if (res.status === 401) {
+                    handleUnauthorized();
+                    return;
+                }
+                if (!res.ok) throw new Error("Failed to create repertoire");
+                const newRep = await res.json();
+                closeNewRepertoireModal();
+
+                if (pendingClipsToAdd && pendingClipsToAdd.length > 0) {
+                    await addPendingClipsToRepertoire(newRep.id, newRep.name);
+                }
+
+                navRepertoire.click();
+                openRepertoire(newRep.id);
+            } catch (err) {
+                console.error(err);
+                alert("Kunne ikke opprette repertoar");
+            }
+        });
+    }
+
+    async function openAddToRepertoireModal(clipIds, displayName) {
+        pendingClipsToAdd = clipIds;
+        if (modalAddToRep) modalAddToRep.classList.remove('hidden');
+        if (addToRepSubtitle) addToRepSubtitle.textContent = displayName || `${clipIds.length} valgte opptak`;
+        if (addToRepOptions) addToRepOptions.innerHTML = '<div class="loading">Laster repertoarer...</div>';
+
+        try {
+            const res = await fetch('/api/repertoires');
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+            const repList = await res.json();
+            renderAddToRepOptions(repList);
+        } catch (err) {
+            console.error(err);
+            if (addToRepOptions) addToRepOptions.innerHTML = '<div class="error">Kunne ikke hente repertoarer</div>';
+        }
+    }
+
+    function renderAddToRepOptions(repList) {
+        if (!addToRepOptions) return;
+        addToRepOptions.innerHTML = '';
+        if (!repList || repList.length === 0) {
+            addToRepOptions.innerHTML = '<p class="text-secondary" style="font-size: 0.9rem; text-align: center; padding: 10px;">Ingen repertoarer funnet. Opprett et nytt nedenfor!</p>';
+            return;
+        }
+
+        repList.forEach(rep => {
+            const item = document.createElement('div');
+            item.className = 'rep-select-item';
+            item.innerHTML = `
+                <span class="rep-select-name">${escapeHTML(rep.name)}</span>
+                <span class="rep-select-count">${rep.item_count} ${rep.item_count === 1 ? 'låt' : 'låter'}</span>
+            `;
+            item.addEventListener('click', async () => {
+                await addPendingClipsToRepertoire(rep.id, rep.name);
+            });
+            addToRepOptions.appendChild(item);
+        });
+    }
+
+    async function addPendingClipsToRepertoire(repId, repName) {
+        if (!pendingClipsToAdd || pendingClipsToAdd.length === 0) return;
+        try {
+            const res = await fetch(`/api/repertoires/${repId}/items/batch`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clip_ids: pendingClipsToAdd })
+            });
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to add clips to repertoire");
+            const data = await res.json();
+
+            if (modalAddToRep) modalAddToRep.classList.add('hidden');
+            alert(`${data.added_count} låt(er) lagt til i "${repName}"!`);
+
+            // Clear selection in recordings
+            selectedClipIds.clear();
+            document.querySelectorAll('.clip-checkbox:checked').forEach(cb => cb.checked = false);
+            updateBatchActions();
+            pendingClipsToAdd = [];
+        } catch (err) {
+            console.error(err);
+            alert("Kunne ikke legge til i repertoaret");
+        }
+    }
+
+    if (btnModalOpenCreateRep) {
+        btnModalOpenCreateRep.addEventListener('click', () => {
+            if (modalAddToRep) modalAddToRep.classList.add('hidden');
+            openNewRepertoireModal(pendingClipsToAdd);
+        });
+    }
+
+    if (btnCloseAddToRepModal) {
+        btnCloseAddToRepModal.addEventListener('click', () => {
+            if (modalAddToRep) modalAddToRep.classList.add('hidden');
+            pendingClipsToAdd = [];
+        });
+    }
+
+    if (btnCancelAddToRep) {
+        btnCancelAddToRep.addEventListener('click', () => {
+            if (modalAddToRep) modalAddToRep.classList.add('hidden');
+            pendingClipsToAdd = [];
+        });
+    }
+
+    if (btnBatchAddRepertoire) {
+        btnBatchAddRepertoire.addEventListener('click', () => {
+            if (selectedClipIds.size === 0) return;
+            const ids = Array.from(selectedClipIds);
+            openAddToRepertoireModal(ids, `${ids.length} valgte opptak fra Recordings`);
+        });
+    }
+
     // Initial load
+    fetchRepertoires();
     fetchNamedSongs();
     fetchClips(); // Still fetch clips in background so the library is ready when toggled
 });

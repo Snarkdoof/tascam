@@ -1,6 +1,6 @@
 import os
 from sqlmodel import SQLModel, create_engine, Session
-from tascam_app.models import SourceFile, Song, Clip, User
+from tascam_app.models import SourceFile, Song, Clip, User, Repertoire, RepertoireItem
 
 db_url = os.environ.get("DATABASE_URL")
 if not db_url:

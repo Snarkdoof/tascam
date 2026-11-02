@@ -55,6 +55,32 @@ class Clip(SQLModel, table=True):
     source_file: Optional[SourceFile] = Relationship(back_populates="clips")
     song: Optional[Song] = Relationship(back_populates="clips")
 
+class Repertoire(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    description: Optional[str] = Field(default=None)
+    is_private: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    items: List["RepertoireItem"] = Relationship(
+        back_populates="repertoire",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+
+class RepertoireItem(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    repertoire_id: int = Field(foreign_key="repertoire.id", index=True)
+    clip_id: Optional[int] = Field(default=None, foreign_key="clip.id")
+    song_id: Optional[int] = Field(default=None, foreign_key="song.id")
+    position: int = Field(default=0, index=True)
+    notes: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    repertoire: Optional[Repertoire] = Relationship(back_populates="items")
+    clip: Optional[Clip] = Relationship()
+    song: Optional[Song] = Relationship()
+
 # Extract Base models if needed, but for now just Read models that include what we need
 class SongRead(SQLModel):
     id: int
@@ -81,3 +107,61 @@ class ClipRead(SQLModel):
     # Include Relationships
     song: Optional[SongRead] = None
     # We could include source_file too if needed
+
+class RepertoireItemRead(SQLModel):
+    id: int
+    repertoire_id: int
+    clip_id: Optional[int] = None
+    song_id: Optional[int] = None
+    position: int
+    notes: Optional[str] = None
+    created_at: datetime
+    clip: Optional[ClipRead] = None
+    song: Optional[SongRead] = None
+
+class RepertoireRead(SQLModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    is_private: bool = False
+    created_at: datetime
+    updated_at: datetime
+    item_count: int = 0
+    total_duration_seconds: float = 0.0
+
+class RepertoireDetailRead(SQLModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    is_private: bool = False
+    created_at: datetime
+    updated_at: datetime
+    item_count: int = 0
+    total_duration_seconds: float = 0.0
+    items: List[RepertoireItemRead] = []
+
+class RepertoireCreate(SQLModel):
+    name: str
+    description: Optional[str] = None
+    is_private: Optional[bool] = False
+
+class RepertoireUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_private: Optional[bool] = None
+
+class RepertoireItemCreate(SQLModel):
+    clip_id: Optional[int] = None
+    song_id: Optional[int] = None
+    position: Optional[int] = None
+    notes: Optional[str] = None
+
+class RepertoireItemUpdate(SQLModel):
+    notes: Optional[str] = None
+    position: Optional[int] = None
+
+class RepertoireBatchAddRequest(SQLModel):
+    clip_ids: List[int]
+
+class RepertoireReorderRequest(SQLModel):
+    item_ids: List[int]
