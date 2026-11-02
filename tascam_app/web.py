@@ -12,7 +12,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from tascam_app.database import get_session
+from contextlib import asynccontextmanager
+from tascam_app.database import get_session, create_db_and_tables
 from tascam_app.models import (
     Song, Clip, SourceFile, ClipRead, SongRead, User,
     Repertoire, RepertoireItem, RepertoireRead, RepertoireDetailRead,
@@ -21,7 +22,12 @@ from tascam_app.models import (
     RepertoireReorderRequest
 )
 
-app = FastAPI(title="Tascam Player")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
+app = FastAPI(title="Tascam Player", lifespan=lifespan)
 
 app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET", "super-secret-key-change-in-prod"))
 
