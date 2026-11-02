@@ -24,3 +24,11 @@ dependencies = [
 
 [project.scripts]
 tascam-process = "process:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
