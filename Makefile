@@ -61,11 +61,11 @@ remote-infra:
 
 remote-run:
 	@echo "--- Starting app on remote ---"
-	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && nohup /home/$(SSH_USER)/.local/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &"
+	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && nohup /home/$(SSH_USER)/.local/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 < /dev/null &"
 	@echo "--- App started in background. Logs are in app.log ---"
 
 remote-restart:
 	@echo "--- Restarting app on remote ---"
 	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "pkill -f 'uvicorn tascam_app.web:app' || true"
-	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && nohup /home/$(SSH_USER)/.local/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &"
+	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && nohup /home/$(SSH_USER)/.local/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 < /dev/null &"
 	@echo "--- App restarted in background. Logs are in app.log ---"
