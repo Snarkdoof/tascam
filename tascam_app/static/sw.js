@@ -1,7 +1,7 @@
-const CACHE_NAME = 'tascam-pwa-v2';
+const CACHE_NAME = 'tascam-pwa-v3';
 const STATIC_ASSETS = [
-    '/static/style.css?v=10',
-    '/static/app.js?v=5',
+    '/static/style.css?v=11',
+    '/static/app.js?v=7',
     '/static/icons/icon.svg',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap',
     'https://cdn.mcorp.no/mcorp.js',
@@ -47,12 +47,20 @@ self.addEventListener('fetch', (event) => {
     // Bypass cache for API, Auth, Admin, and Audio Streams (Network Only)
     if (url.pathname.startsWith('/api/') || 
         url.pathname.startsWith('/login') || 
-        url.pathname.startsWith('/auth') ||
+        url.pathname.startsWith('/auth') || 
         url.pathname.startsWith('/admin')) {
         return; 
     }
 
-    // Cache-First strategy for the UI Shell
+    // Network-First for navigation/HTML so fresh changes are picked up immediately
+    if (event.request.mode === 'navigate' || url.pathname === '/') {
+        event.respondWith(
+            fetch(event.request).catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // Cache-First strategy for static assets
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) {

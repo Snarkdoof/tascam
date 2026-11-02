@@ -1,6 +1,6 @@
 import { MCorp, TIMINGSRC } from 'https://cdn.mcorp.no/mcorp.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
     // UI Elements
     const songList = document.getElementById('song-list');
     const namedSongList = document.getElementById('named-song-list');
@@ -184,79 +184,94 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Navigation Buttons
-    navRepertoire.addEventListener('click', () => {
-        navRepertoire.classList.add('active');
-        navSongs.classList.remove('active');
-        navLibrary.classList.remove('active');
-        repertoireView.classList.remove('hidden');
-        songsView.classList.add('hidden');
-        libraryView.classList.add('hidden');
-        fetchRepertoires();
-    });
+    if (navRepertoire) {
+        navRepertoire.addEventListener('click', () => {
+            navRepertoire.classList.add('active');
+            if (navSongs) navSongs.classList.remove('active');
+            if (navLibrary) navLibrary.classList.remove('active');
+            if (repertoireView) repertoireView.classList.remove('hidden');
+            if (songsView) songsView.classList.add('hidden');
+            if (libraryView) libraryView.classList.add('hidden');
+            fetchRepertoires();
+        });
+    }
 
-    navLibrary.addEventListener('click', () => {
-        navLibrary.classList.add('active');
-        navRepertoire.classList.remove('active');
-        navSongs.classList.remove('active');
-        libraryView.classList.remove('hidden');
-        repertoireView.classList.add('hidden');
-        songsView.classList.add('hidden');
-    });
+    if (navLibrary) {
+        navLibrary.addEventListener('click', () => {
+            navLibrary.classList.add('active');
+            if (navRepertoire) navRepertoire.classList.remove('active');
+            if (navSongs) navSongs.classList.remove('active');
+            if (libraryView) libraryView.classList.remove('hidden');
+            if (repertoireView) repertoireView.classList.add('hidden');
+            if (songsView) songsView.classList.add('hidden');
+            fetchClips();
+        });
+    }
 
-    navSongs.addEventListener('click', () => {
-        navSongs.classList.add('active');
-        navRepertoire.classList.remove('active');
-        navLibrary.classList.remove('active');
-        songsView.classList.remove('hidden');
-        repertoireView.classList.add('hidden');
-        libraryView.classList.add('hidden');
-        fetchNamedSongs();
-    });
+    if (navSongs) {
+        navSongs.addEventListener('click', () => {
+            navSongs.classList.add('active');
+            if (navRepertoire) navRepertoire.classList.remove('active');
+            if (navLibrary) navLibrary.classList.remove('active');
+            if (songsView) songsView.classList.remove('hidden');
+            if (repertoireView) repertoireView.classList.add('hidden');
+            if (libraryView) libraryView.classList.add('hidden');
+            fetchNamedSongs();
+        });
+    }
 
     // Playback Controls
-    btnPlayPause.addEventListener('click', () => {
-        const vel = to.query().velocity;
-        to.update({ velocity: vel === 0 ? 1 : 0 });
-    });
+    if (btnPlayPause) {
+        btnPlayPause.addEventListener('click', () => {
+            const vel = to.query().velocity;
+            to.update({ velocity: vel === 0 ? 1 : 0 });
+        });
+    }
 
-    btnBegin.addEventListener('click', () => {
-        to.update({ position: 0 });
-    });
-
-    btnRewind3s.addEventListener('click', () => {
-        const pos = to.query().position;
-        to.update({ position: Math.max(0, pos - 3) });
-    });
-
-    btnSkipBack.addEventListener('click', () => {
-        if (!currentClip || !currentClip.song || !currentClip.song.markers) return;
-        
-        const pos = to.query().position;
-        const markers = [...currentClip.song.markers].sort((a, b) => a.start - b.start);
-        
-        // Find current marker
-        let currentIdx = -1;
-        for (let i = markers.length - 1; i >= 0; i--) {
-            if (pos >= markers[i].start) {
-                currentIdx = i;
-                break;
-            }
-        }
-
-        if (currentIdx === -1) {
+    if (btnBegin) {
+        btnBegin.addEventListener('click', () => {
             to.update({ position: 0 });
-            return;
-        }
+        });
+    }
 
-        const currentMarker = markers[currentIdx];
-        if (pos - currentMarker.start < 5 && currentIdx > 0) {
-            // Skip to previous marker
-            to.update({ position: markers[currentIdx - 1].start });
-        } else {
-            // Skip to start of current marker
-            to.update({ position: currentMarker.start });
-        }
-    });
+    if (btnRewind3s) {
+        btnRewind3s.addEventListener('click', () => {
+            const pos = to.query().position;
+            to.update({ position: Math.max(0, pos - 3) });
+        });
+    }
+
+    if (btnSkipBack) {
+        btnSkipBack.addEventListener('click', () => {
+            if (!currentClip || !currentClip.song || !currentClip.song.markers) return;
+            
+            const pos = to.query().position;
+            const markers = [...currentClip.song.markers].sort((a, b) => a.start - b.start);
+            
+            // Find current marker
+            let currentIdx = -1;
+            for (let i = markers.length - 1; i >= 0; i--) {
+                if (pos >= markers[i].start) {
+                    currentIdx = i;
+                    break;
+                }
+            }
+
+            if (currentIdx === -1) {
+                to.update({ position: 0 });
+                return;
+            }
+
+            const currentMarker = markers[currentIdx];
+            if (pos - currentMarker.start < 5 && currentIdx > 0) {
+                // Skip to previous marker
+                to.update({ position: markers[currentIdx - 1].start });
+            } else {
+                // Skip to start of current marker
+                to.update({ position: currentMarker.start });
+            }
+        });
+    }
 
     function renderLoopControls() {
         if (!loopControls) return;
@@ -339,44 +354,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    progressBar.addEventListener('click', (e) => {
-        const rect = progressBar.getBoundingClientRect();
-        const pct = (e.clientX - rect.left) / rect.width;
-        const duration = player.duration || 0;
-        to.update({ position: pct * duration });
-    });
+    if (progressBar) {
+        progressBar.addEventListener('click', (e) => {
+            const rect = progressBar.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            const duration = player.duration || 0;
+            to.update({ position: pct * duration });
+        });
+    }
 
     // Marker Logic
-    btnAddMarker.addEventListener('click', async () => {
-        if (!currentClip || !currentClip.song) return;
-        
-        const pos = to.query().position;
-        const val = markerValInput.value || `Mark ${currentClip.song.markers.length + 1}`;
-        
-        const newMarker = { start: pos, end: null, value: val };
-        const updatedMarkers = [...(currentClip.song.markers || []), newMarker];
-        
-        try {
-            const res = await fetch(`/api/songs/${currentClip.song.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ markers: updatedMarkers })
-            });
-            if (res.status === 401) {
-                handleUnauthorized();
-                return;
+    if (btnAddMarker) {
+        btnAddMarker.addEventListener('click', async () => {
+            if (!currentClip || !currentClip.song) return;
+            
+            const pos = to.query().position;
+            const val = markerValInput.value || `Mark ${currentClip.song.markers.length + 1}`;
+            
+            const newMarker = { start: pos, end: null, value: val };
+            const updatedMarkers = [...(currentClip.song.markers || []), newMarker];
+            
+            try {
+                const res = await fetch(`/api/songs/${currentClip.song.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ markers: updatedMarkers })
+                });
+                if (res.status === 401) {
+                    handleUnauthorized();
+                    return;
+                }
+                const updatedSong = await res.json();
+                currentClip.song = updatedSong;
+                markerValInput.value = '';
+                // Expand list when adding a marker
+                markerListContainer.classList.remove('collapsed');
+                renderMarkers();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to add marker");
             }
-            const updatedSong = await res.json();
-            currentClip.song = updatedSong;
-            markerValInput.value = '';
-            // Expand list when adding a marker
-            markerListContainer.classList.remove('collapsed');
-            renderMarkers();
-        } catch (err) {
-            console.error(err);
-            alert("Failed to add marker");
-        }
-    });
+        });
+    }
 
     // Fetch Initial Data
     function fetchClips() {
@@ -1552,5 +1571,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial load
     fetchRepertoires();
     fetchNamedSongs();
-    fetchClips(); // Still fetch clips in background so the library is ready when toggled
-});
+    fetchClips();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
