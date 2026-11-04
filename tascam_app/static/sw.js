@@ -1,10 +1,10 @@
-const CACHE_NAME = 'tascam-pwa-v3';
+const CACHE_NAME = 'tascam-pwa-v5';
 const STATIC_ASSETS = [
     '/static/style.css?v=11',
-    '/static/app.js?v=7',
+    '/static/app.js?v=9',
     '/static/icons/icon.svg',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap',
-    'https://cdn.mcorp.no/mcorp.js',
+    'https://mcorp.no/lib/mcorp-2.0.js',
     'https://cdn.jsdelivr.net/npm/@mcorp/mediasync/dist/basic-mediasync.min.js'
 ];
 

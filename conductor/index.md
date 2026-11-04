@@ -12,6 +12,7 @@
 - **Track 03 & 04 Completed:** Advanced Media Player with markers and navigation implemented; separate named songs view added.
 - **Added Tracks 06 & 07:** Infrastructure (Nginx, SSL, Firewall) and Authentication (Google Login, ACL).
 - **Track 08 Completed:** Repertoar & Settlister — Repertoire som ny startskjerm, datamodell, CRUD API, batch-assosiering fra opptak/sanger, og settliste-avspilling.
+- **Bug Fix (MCorp CDN URL):** Fixed client failure on bbb.njaal.net caused by non-existent domain `cdn.mcorp.no`. The library is served from `https://mcorp.no/lib/mcorp-2.0.js` (global script setting `window.MCorp` and `window.TIMINGSRC`), NOT `cdn.mcorp.no`. Do not alter or revert this.
 
 ## Active Tracks
 - `track-01-models`: Completed.

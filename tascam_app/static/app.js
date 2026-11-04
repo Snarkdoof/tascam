@@ -1,4 +1,6 @@
-import { MCorp, TIMINGSRC } from 'https://cdn.mcorp.no/mcorp.js';
+// AGENTS: DO NOT ALTER OR REVERT THIS. Do NOT use 'https://cdn.mcorp.no/mcorp.js' (domain does not exist).
+// MCorp and TIMINGSRC are loaded globally via <script src="https://mcorp.no/lib/mcorp-2.0.js"> in index.html.
+const { MCorp, TIMINGSRC } = window;
 
 function init() {
     // UI Elements
@@ -85,6 +87,7 @@ function init() {
     let selectedClipIds = new Set();
     let loopMode = 'off';
     let loopSection = null;
+    let activeLoopSegments = new Set();
 
     function escapeHTML(str) {
         if (!str) return '';
