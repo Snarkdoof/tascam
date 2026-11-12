@@ -27,6 +27,7 @@ deploy:
 		--exclude '.git/' \
 		--exclude '__pycache__/' \
 		--exclude '.venv/' \
+		--exclude '.env' \
 		--exclude 'data/' \
 		--exclude 'exports/' \
 		--exclude 'tmp*/' \
@@ -66,6 +67,21 @@ remote-run:
 
 remote-restart:
 	@echo "--- Restarting app on remote ---"
-	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "pkill -f '[u]vicorn tascam_app.web:app' || true"
-	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "cd $(REMOTE_PATH) && (nohup /home/$(SSH_USER)/.local/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 < /dev/null &) && sleep 1"
+	ssh -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP) "pkill -f '[u]vicorn tascam_app.web:app' || true; cd $(REMOTE_PATH) && (nohup /home/$(SSH_USER)/.local/bin/uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 > app.log 2>&1 < /dev/null &) && sleep 1"
 	@echo "--- App restarted in background. Logs are in app.log ---"
+
+run-remote-db:
+	@echo "--- Opening SSH Tunnel to Postgres (Port 5432) ---"
+	ssh -f -N -L 5432:localhost:5432 -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP)
+	@echo "--- Tunnel Opened. Running Local Uvicorn against Remote DB ---"
+	DATABASE_URL="postgresql://tascam_user:tascam_secure_pass_123@localhost:5432/tascam_db" uv run uvicorn tascam_app.web:app --host 0.0.0.0 --port 8000 --reload || true
+	@echo "--- Closing SSH Tunnel ---"
+	pkill -f "[s]sh -f -N -L 5432:localhost:5432" || true
+
+sync-local-db:
+	@echo "--- Opening SSH Tunnel to Postgres (Port 5432) ---"
+	ssh -f -N -L 5432:localhost:5432 -i $(SSH_KEY) $(SSH_USER)@$(SERVER_IP)
+	@echo "--- Tunnel Opened. Syncing PostgreSQL into local SQLite tascam.db ---"
+	DATABASE_URL="postgresql://tascam_user:tascam_secure_pass_123@localhost:5432/tascam_db" uv run python sync_from_pg.py || true
+	@echo "--- Closing SSH Tunnel ---"
+	pkill -f "[s]sh -f -N -L 5432:localhost:5432" || true
