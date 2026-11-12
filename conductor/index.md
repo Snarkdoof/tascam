@@ -1,7 +1,7 @@
 # Project Pulse: Tascam Audio Processor
 
 ## Current Status
-**Phase:** Feature Implementation (Track 09: Library Pause Visualization)
+**Phase:** Feature Implementation & Stabilization
 **Overall Health:** Green
 
 ## Recent Updates
@@ -12,7 +12,7 @@
 - **Track 03 & 04 Completed:** Advanced Media Player with markers and navigation implemented; separate named songs view added.
 - **Added Tracks 06 & 07:** Infrastructure (Nginx, SSL, Firewall) and Authentication (Google Login, ACL).
 - **Track 08 Completed:** Repertoar & Settlister — Repertoire som ny startskjerm, datamodell, CRUD API, batch-assosiering fra opptak/sanger, og settliste-avspilling.
-- **Track 09 Started:** Library Pause Visualization & Song Grouping — automatic pause calculation, take blocks, pause dividers, and configurable pause threshold.
+- **Track 09 Completed:** Library Pause Visualization & Song Grouping — dynamic pause calculation, take blocks, pause dividers, configurable threshold selector, and block batch actions.
 - **Bug Fix (MCorp CDN URL):** Fixed client failure on bbb.njaal.net caused by non-existent domain `cdn.mcorp.no`. The library is served from `https://mcorp.no/lib/mcorp-2.0.js` (global script setting `window.MCorp` and `window.TIMINGSRC`), NOT `cdn.mcorp.no`. Do not alter or revert this.
 
 ## Active Tracks
@@ -24,7 +24,7 @@
 - `track-06-infrastructure`: Planned.
 - `track-07-auth`: Planned.
 - `track-08-repertoire`: Completed.
-- `track-09-library-pause-grouping`: In Progress.
+- `track-09-library-pause-grouping`: Completed.
 
 ## Blockers / Risks
 - Need to ensure the `mcorp-sync` skill is properly activated and utilized by the Frontend Specialist during `track-03-player`.

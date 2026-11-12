@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tascam Player</title>
-    <link rel="stylesheet" href="/static/style.css?v=11">
+    <link rel="stylesheet" href="/static/style.css?v=12">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f1115">
     <link rel="apple-touch-icon" href="/static/icons/icon.svg">
@@ -91,7 +91,20 @@
             <div id="library-view" class="view hidden">
                 <div class="song-list-container">
                     <div class="header-row">
-                        <h2>Recordings</h2>
+                        <div class="header-title-group">
+                            <h2>Recordings</h2>
+                            <div class="pause-threshold-control" title="Split into song blocks when pause between takes exceeds this duration">
+                                <label for="select-pause-threshold">Pause split:</label>
+                                <select id="select-pause-threshold" class="select-threshold">
+                                    <option value="45">45s</option>
+                                    <option value="90" selected>1.5m (90s)</option>
+                                    <option value="120">2m</option>
+                                    <option value="180">3m</option>
+                                    <option value="300">5m</option>
+                                    <option value="0">Off (flat)</option>
+                                </select>
+                            </div>
+                        </div>
                         <div id="batch-actions" class="batch-actions hidden">
                             <button id="btn-batch-add-repertoire" class="btn-primary">📋 Legg til i repertoar (<span id="batch-rep-count">0</span>)</button>
                             <button id="btn-batch-delete" class="btn-danger">Delete Selected (<span
@@ -209,7 +222,7 @@
         </div>
     </div>
 
-    <script type="module" src="/static/app.js?v=9"></script>
+    <script type="module" src="/static/app.js?v=10"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

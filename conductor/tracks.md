@@ -10,4 +10,4 @@
 | `track-06-infrastructure` | Infrastructure & Security | Planned | DevOps Specialist | Set up Nginx reverse proxy, SSL (Certbot), and Firewall (UFW). |
 | `track-07-auth` | Authentication & ACL | Planned | Backend Specialist | Implement Google Login, User models, and Admin UI for user management. |
 | `track-08-repertoire` | Repertoar & Settlister | **Completed** | Fullstack Specialist | Implementere Repertoar som ny startskjerm, datamodell, CRUD API, batch-tillegging fra opptak/sanger, og settliste-avspilling. |
-| `track-09-library-pause-grouping` | Library Pause Visualization & Song Grouping | In Progress | Fullstack Specialist | Visualize cuts vs song changes with configurable pause dividers and take blocks in Library view. |
+| `track-09-library-pause-grouping` | Library Pause Visualization & Song Grouping | **Completed** | Fullstack Specialist | Visualize cuts vs song changes with configurable pause dividers and take blocks in Library view. |

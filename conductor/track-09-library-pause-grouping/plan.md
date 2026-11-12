@@ -8,22 +8,22 @@
 - [x] Local git checkpoint.
 
 ### Phase 2: UI Controls & Templates
-- [ ] Add pause threshold selector dropdown to `#library-view .header-row` in `tascam_app/templates/index.html`.
+- [x] Add pause threshold selector dropdown to `#library-view .header-row` in `tascam_app/templates/index.html`.
 
 ### Phase 3: CSS Styles
-- [ ] Style `.song-block` container cards and `.song-block-header`.
-- [ ] Style `.pause-divider` line and duration badge.
-- [ ] Style `.take-badge` and compact take count indicators.
-- [ ] Ensure mobile responsiveness.
+- [x] Style `.song-block` container cards and `.song-block-header`.
+- [x] Style `.pause-divider` line and duration badge.
+- [x] Style `.take-badge` and compact take count indicators.
+- [x] Ensure mobile responsiveness.
 
 ### Phase 4: Frontend Logic in `app.js`
-- [ ] Implement `formatPauseDuration(seconds)`.
-- [ ] Implement `partitionClipsIntoSongBlocks(clips, thresholdSec)`.
-- [ ] Update `renderGroups()` to render song blocks and pause dividers.
-- [ ] Add block-level "Select All Takes" and "+ Rep" triggers.
-- [ ] Connect threshold `<select>` with `localStorage` persistence and immediate reactive re-render.
+- [x] Implement `formatPauseDuration(seconds)`.
+- [x] Implement `partitionClipsIntoSongBlocks(clips, thresholdSec)`.
+- [x] Update `renderGroups()` to render song blocks and pause dividers.
+- [x] Add block-level "Select All Takes" and "+ Rep" triggers.
+- [x] Connect threshold `<select>` with `localStorage` persistence and immediate reactive re-render.
 
 ### Phase 5: Verification & Tests
-- [ ] Unit tests for pause gap calculations and block partitioning in `tests/test_pause_grouping.py`.
-- [ ] Verify existing clip actions (playback, inline edit, delete, download, repertoire modal) remain functional.
-- [ ] Update `AGENT_MAP.md`.
+- [x] Unit tests for pause gap calculations and block partitioning in `tests/test_pause_grouping.py`.
+- [x] Verify existing clip actions (playback, inline edit, delete, download, repertoire modal) remain functional.
+- [x] Update `AGENT_MAP.md`.

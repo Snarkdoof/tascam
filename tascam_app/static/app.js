@@ -13,6 +13,7 @@ function init() {
     const batchActions = document.getElementById('batch-actions');
     const btnBatchDelete = document.getElementById('btn-batch-delete');
     const selectedCountSpan = document.getElementById('selected-count');
+    const selectPauseThreshold = document.getElementById('select-pause-threshold');
     
     // View Navigation
     const navRepertoire = document.getElementById('nav-repertoire');
@@ -482,10 +483,96 @@ function init() {
         batchActions.classList.toggle('hidden', count === 0);
     }
 
+    function formatPauseDuration(seconds) {
+        if (!seconds || seconds <= 0) return "0s pause";
+        const totalSec = Math.round(seconds);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        if (m >= 60) {
+            const h = Math.floor(m / 60);
+            const remM = m % 60;
+            return remM > 0 ? `${h}h ${remM}m pause` : `${h}h pause`;
+        }
+        if (m >= 10 && s === 0) {
+            return `${m}m break`;
+        }
+        if (m >= 10) {
+            return `${m}m ${s > 0 ? s + 's ' : ''}break`;
+        }
+        if (m > 0) {
+            return s > 0 ? `${m}m ${s}s pause` : `${m}m pause`;
+        }
+        return `${s}s pause`;
+    }
+
+    function getPauseThresholdSec() {
+        const stored = localStorage.getItem('tascam_pause_threshold_sec');
+        if (stored !== null) {
+            const parsed = parseInt(stored, 10);
+            return isNaN(parsed) ? 90 : parsed;
+        }
+        return 90; // Default 1.5 minutes
+    }
+
+    function partitionClipsIntoSongBlocks(clips, thresholdSec) {
+        if (!clips || clips.length === 0) return [];
+        if (!thresholdSec || thresholdSec <= 0) {
+            return [{
+                blockIndex: 1,
+                clips: clips,
+                totalDuration: clips.reduce((acc, c) => acc + (c.duration_seconds || 0), 0),
+                pauseAfter: 0,
+                isNewSession: false,
+                hasSplit: false
+            }];
+        }
+
+        const blocks = [];
+        let currentBlockClips = [clips[0]];
+
+        for (let i = 1; i < clips.length; i++) {
+            const prevClip = clips[i - 1];
+            const currClip = clips[i];
+
+            const diffSource = Boolean(prevClip.source_file_id && currClip.source_file_id && prevClip.source_file_id !== currClip.source_file_id);
+            const prevEnd = (prevClip.start_seconds || 0) + (prevClip.duration_seconds || 0);
+            const pause = Math.max(0, (currClip.start_seconds || 0) - prevEnd);
+
+            if (diffSource || pause >= thresholdSec) {
+                blocks.push({
+                    blockIndex: blocks.length + 1,
+                    clips: currentBlockClips,
+                    totalDuration: currentBlockClips.reduce((acc, c) => acc + (c.duration_seconds || 0), 0),
+                    pauseAfter: pause,
+                    isNewSession: diffSource,
+                    hasSplit: true
+                });
+                currentBlockClips = [currClip];
+            } else {
+                currentBlockClips.push(currClip);
+            }
+        }
+
+        if (currentBlockClips.length > 0) {
+            blocks.push({
+                blockIndex: blocks.length + 1,
+                clips: currentBlockClips,
+                totalDuration: currentBlockClips.reduce((acc, c) => acc + (c.duration_seconds || 0), 0),
+                pauseAfter: 0,
+                isNewSession: false,
+                hasSplit: blocks.length > 0
+            });
+        }
+
+        return blocks;
+    }
+
     function renderGroups(container, clipList) {
         container.innerHTML = '';
         selectedClipIds.clear();
         updateBatchActions();
+
+        const thresholdSec = getPauseThresholdSec();
 
         const groups = {};
         clipList.forEach(clip => {
@@ -515,10 +602,93 @@ function init() {
                 content.classList.toggle('hidden');
             });
 
-            groupClips.forEach(clip => {
-                const clipEl = renderClipRow(clip);
-                content.appendChild(clipEl);
-            });
+            if (thresholdSec <= 0) {
+                groupClips.forEach(clip => {
+                    const clipEl = renderClipRow(clip);
+                    content.appendChild(clipEl);
+                });
+            } else {
+                const blocks = partitionClipsIntoSongBlocks(groupClips, thresholdSec);
+
+                blocks.forEach((block) => {
+                    const blockDiv = document.createElement('div');
+                    blockDiv.className = 'song-block';
+
+                    const isMultiTake = block.clips.length > 1;
+
+                    if (isMultiTake) {
+                        const blockHeader = document.createElement('div');
+                        blockHeader.className = 'song-block-header';
+
+                        const durationStr = formatDuration(block.totalDuration);
+                        const startTimeStr = formatTimestamp(block.clips[0].start_seconds);
+
+                        blockHeader.innerHTML = `
+                            <div class="block-title-group">
+                                <input type="checkbox" class="block-checkbox" title="Select all takes in this block">
+                                <span class="block-title">Takes (${block.clips.length} cuts)</span>
+                                <span class="block-meta">${durationStr} total • @ ${startTimeStr}</span>
+                            </div>
+                            <div class="block-actions">
+                                <button class="btn-block-rep" title="Legg alle ${block.clips.length} opptak til i repertoar">+ Rep (${block.clips.length})</button>
+                            </div>
+                        `;
+
+                        const blockCb = blockHeader.querySelector('.block-checkbox');
+                        blockCb.addEventListener('change', (e) => {
+                            const isChecked = e.target.checked;
+                            block.clips.forEach(c => {
+                                if (isChecked) selectedClipIds.add(c.id);
+                                else selectedClipIds.delete(c.id);
+                                const cEl = blockDiv.querySelector(`.clip-row[data-id="${c.id}"] .clip-checkbox`);
+                                if (cEl) cEl.checked = isChecked;
+                            });
+                            updateBatchActions();
+                        });
+
+                        const btnBlockRep = blockHeader.querySelector('.btn-block-rep');
+                        btnBlockRep.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const ids = block.clips.map(c => c.id);
+                            openAddToRepertoireModal(ids, `Takes (${block.clips.length} cuts) - ${date}`);
+                        });
+
+                        blockDiv._updateCheckboxState = () => {
+                            const allSelected = block.clips.every(c => selectedClipIds.has(c.id));
+                            const someSelected = block.clips.some(c => selectedClipIds.has(c.id));
+                            blockCb.checked = allSelected;
+                            blockCb.indeterminate = !allSelected && someSelected;
+                        };
+
+                        blockDiv.appendChild(blockHeader);
+                    }
+
+                    block.clips.forEach((clip, cIdx) => {
+                        const takeNum = isMultiTake ? cIdx + 1 : null;
+                        const clipEl = renderClipRow(clip, takeNum, block.clips.length);
+                        blockDiv.appendChild(clipEl);
+                    });
+
+                    content.appendChild(blockDiv);
+
+                    if (block.pauseAfter >= thresholdSec) {
+                        const dividerDiv = document.createElement('div');
+                        dividerDiv.className = 'pause-divider';
+                        const pauseStr = formatPauseDuration(block.pauseAfter);
+                        const label = block.isNewSession ? 'New session' : 'Song change / Note break';
+                        dividerDiv.innerHTML = `
+                            <span class="pause-divider-line"></span>
+                            <span class="pause-divider-badge" title="${pauseStr} break before next song">
+                                <span class="pause-divider-icon">⏸️</span>
+                                <span class="pause-divider-time">${pauseStr}</span>
+                                <span class="pause-divider-label">${label}</span>
+                            </span>
+                            <span class="pause-divider-line"></span>
+                        `;
+                        content.appendChild(dividerDiv);
+                    }
+                });
+            }
 
             groupDiv.appendChild(header);
             groupDiv.appendChild(content);
@@ -526,7 +696,7 @@ function init() {
         });
     }
 
-    function renderClipRow(clip) {
+    function renderClipRow(clip, takeNumber = null, totalTakesInBlock = 1) {
         const div = document.createElement('div');
         div.className = 'clip-row';
         div.dataset.id = clip.id;
@@ -537,6 +707,11 @@ function init() {
 
         const durationStr = formatDuration(clip.duration_seconds);
         const startStr = formatTimestamp(clip.start_seconds);
+
+        let takeBadgeHTML = '';
+        if (takeNumber !== null && totalTakesInBlock > 1) {
+            takeBadgeHTML = `<span class="take-badge" title="Take ${takeNumber} of ${totalTakesInBlock}">Take ${takeNumber}</span>`;
+        }
 
         let privateToggleHTML = '';
         if (window.IS_ADMIN) {
@@ -555,6 +730,7 @@ function init() {
             <div class="clip-main">
                 <input type="checkbox" class="clip-checkbox" value="${clip.id}">
                 <span class="clip-id">#${clip.id}</span>
+                ${takeBadgeHTML}
                 <div class="clip-play-btn">▶</div>
                 <div class="clip-details">
                     <div class="clip-title editable" data-field="title">${songTitle}</div>
@@ -579,6 +755,10 @@ function init() {
             if (e.target.checked) selectedClipIds.add(clip.id);
             else selectedClipIds.delete(clip.id);
             updateBatchActions();
+            const blockEl = div.closest('.song-block');
+            if (blockEl && blockEl._updateCheckboxState) {
+                blockEl._updateCheckboxState();
+            }
         });
 
         div.querySelector('.btn-add-rep').addEventListener('click', (e) => {
@@ -1568,6 +1748,49 @@ function init() {
             if (selectedClipIds.size === 0) return;
             const ids = Array.from(selectedClipIds);
             openAddToRepertoireModal(ids, `${ids.length} valgte opptak fra Recordings`);
+        });
+    }
+
+    if (selectPauseThreshold) {
+        const storedThreshold = localStorage.getItem('tascam_pause_threshold_sec');
+        if (storedThreshold !== null) {
+            selectPauseThreshold.value = storedThreshold;
+        } else {
+            selectPauseThreshold.value = "90";
+        }
+        selectPauseThreshold.addEventListener('change', (e) => {
+            localStorage.setItem('tascam_pause_threshold_sec', e.target.value);
+            if (clips && clips.length > 0) {
+                renderGroups(songList, clips);
+            }
+        });
+    }
+
+    if (btnBatchDelete) {
+        btnBatchDelete.addEventListener('click', async () => {
+            if (selectedClipIds.size === 0) return;
+            const count = selectedClipIds.size;
+            if (!confirm(`Slett ${count} valgte opptak?`)) return;
+            try {
+                const ids = Array.from(selectedClipIds);
+                const res = await fetch('/api/clips/batch-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clip_ids: ids })
+                });
+                if (res.status === 401) {
+                    handleUnauthorized();
+                    return;
+                }
+                if (!res.ok) throw new Error("Failed to batch delete");
+                clips = clips.filter(c => !selectedClipIds.has(c.id));
+                selectedClipIds.clear();
+                updateBatchActions();
+                renderGroups(songList, clips);
+            } catch (err) {
+                console.error(err);
+                alert("Kunne ikke slette valgte opptak");
+            }
         });
     }
 
