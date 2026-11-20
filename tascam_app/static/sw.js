@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tascam-pwa-v6';
+const CACHE_NAME = 'tascam-pwa-v7';
 const STATIC_ASSETS = [
-    '/static/style.css?v=13',
+    '/static/style.css?v=14',
     '/static/app.js?v=11',
     '/static/icons/icon.svg',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap',

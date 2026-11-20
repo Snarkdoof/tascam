@@ -695,6 +695,7 @@ input:checked + .slider:before {
 }
 
 .player-container.minimized .now-playing-info {
+    order: 1;
     text-align: left;
     padding: 0;
     flex: 1;
@@ -710,6 +711,7 @@ input:checked + .slider:before {
 }
 
 .player-container.minimized .player-top-actions {
+    order: 2;
     position: static;
     flex-shrink: 0;
 }
