@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tascam Player</title>
-    <link rel="stylesheet" href="/static/style.css?v=12">
+    <link rel="stylesheet" href="/static/style.css?v=13">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f1115">
     <link rel="apple-touch-icon" href="/static/icons/icon.svg">
@@ -118,7 +118,11 @@
                 </div>
             </div>
 
-            <div class="player-container">
+            <div id="player-container" class="player-container">
+                <div class="player-top-actions">
+                    <button id="btn-mini-play-pause" class="btn-mini-play hidden" title="Play / Pause" aria-label="Play or Pause">▶</button>
+                    <button id="btn-toggle-player" class="btn-toggle-player" title="Minimize player" aria-label="Minimize player" aria-expanded="true">▼</button>
+                </div>
                 <div class="now-playing-info">
                     <h3 id="np-title">Select a track</h3>
                     <p id="np-artist">...</p>
@@ -222,7 +226,7 @@
         </div>
     </div>
 
-    <script type="module" src="/static/app.js?v=10"></script>
+    <script type="module" src="/static/app.js?v=11"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

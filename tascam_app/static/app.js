@@ -57,6 +57,9 @@ function init() {
     const btnModalOpenCreateRep = document.getElementById('btn-modal-open-create-rep');
 
     // Player Controls
+    const playerContainer = document.getElementById('player-container');
+    const btnTogglePlayer = document.getElementById('btn-toggle-player');
+    const btnMiniPlayPause = document.getElementById('btn-mini-play-pause');
     const btnPlayPause = document.getElementById('btn-play-pause');
     const btnBegin = document.getElementById('btn-begin');
     const btnSkipBack = document.getElementById('btn-skip-back');
@@ -107,6 +110,38 @@ function init() {
             }
         }
         window.location.href = '/';
+    }
+
+    // Toggle Player Minimize
+    function setPlayerMinimized(minimized) {
+        if (!playerContainer || !btnTogglePlayer) return;
+        playerContainer.classList.toggle('minimized', minimized);
+        if (btnMiniPlayPause) {
+            btnMiniPlayPause.classList.toggle('hidden', !minimized);
+        }
+        btnTogglePlayer.setAttribute('aria-expanded', String(!minimized));
+        const label = minimized ? 'Expand player' : 'Minimize player';
+        btnTogglePlayer.setAttribute('title', label);
+        btnTogglePlayer.setAttribute('aria-label', label);
+        try {
+            localStorage.setItem('playerMinimized', String(minimized));
+        } catch (err) {
+            // Ignore storage errors in restricted contexts
+        }
+    }
+
+    if (btnTogglePlayer && playerContainer) {
+        try {
+            if (localStorage.getItem('playerMinimized') === 'true') {
+                setPlayerMinimized(true);
+            }
+        } catch (err) {
+            // Ignore storage errors
+        }
+
+        btnTogglePlayer.addEventListener('click', () => {
+            setPlayerMinimized(!playerContainer.classList.contains('minimized'));
+        });
     }
 
     // Toggle Markers
@@ -184,7 +219,11 @@ function init() {
 
     to.on("change", () => {
         const vector = to.query();
-        btnPlayPause.textContent = vector.velocity === 0 ? "Play" : "Pause";
+        const isPaused = vector.velocity === 0;
+        btnPlayPause.textContent = isPaused ? "Play" : "Pause";
+        if (btnMiniPlayPause) {
+            btnMiniPlayPause.textContent = isPaused ? "▶" : "⏸";
+        }
     });
 
     // Navigation Buttons
@@ -227,6 +266,13 @@ function init() {
     // Playback Controls
     if (btnPlayPause) {
         btnPlayPause.addEventListener('click', () => {
+            const vel = to.query().velocity;
+            to.update({ velocity: vel === 0 ? 1 : 0 });
+        });
+    }
+
+    if (btnMiniPlayPause) {
+        btnMiniPlayPause.addEventListener('click', () => {
             const vel = to.query().velocity;
             to.update({ velocity: vel === 0 ? 1 : 0 });
         });
